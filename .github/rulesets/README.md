@@ -34,7 +34,23 @@ failing), so rulesets remain whatever you last applied by hand.
 
 ## Reuse across repos
 
-Copy this folder + `.github/workflows/rulesets.yml` into any repo and it
-self-applies. To avoid duplicating the workflow body, host it once as a reusable
-workflow (`on: workflow_call`) in a shared repo and have each repo call it with a
-one-line caller that passes `secrets: inherit`.
+The workflow supports `workflow_call`, so host one canonical copy (e.g. in
+`winterop-com/.github`) and have every other repo call it instead of duplicating the
+body. Each repo keeps its own `.github/rulesets/*.json` plus a small caller:
+
+```yaml
+# .github/workflows/rulesets.yml in any repo
+name: rulesets
+on:
+  push: { branches: [main], paths: ['.github/rulesets/**'] }
+  workflow_dispatch:
+jobs:
+  apply:
+    uses: winterop-com/.github/.github/workflows/rulesets.yml@main
+    secrets: inherit   # passes RULESETS_TOKEN through
+```
+
+`checkout` inside the reusable workflow runs against the **caller** repo, so each
+repo applies its own rulesets to itself. Set `RULESETS_TOKEN` once as an
+**organization secret** (Settings -> Secrets and variables -> Actions) and every
+repo inherits it - no per-repo token setup.

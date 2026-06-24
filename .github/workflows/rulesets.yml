@@ -17,6 +17,9 @@ on:
       - ".github/rulesets/**"
       - ".github/workflows/rulesets.yml"
   workflow_dispatch:
+  # Reusable: other repos call this with `uses:` + `secrets: inherit`. checkout
+  # then reads the *caller* repo's .github/rulesets/ and applies to the caller.
+  workflow_call:
 
 permissions:
   contents: read

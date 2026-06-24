@@ -51,6 +51,7 @@ nav:
       - Differences from pluggy: production/vs-pluggy.md
   - Integrations:
       - FastAPI: integrations/fastapi.md
+      - Click CLI: integrations/click.md
   - API Reference: api-reference.md
 
 markdown_extensions:

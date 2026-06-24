@@ -4,12 +4,14 @@ import asyncio
 
 import app_lifecycle
 import async_fetch
+import cli_app
 import fastapi_app
 import notification_router
 import quickstart
 import report_builder
 import text_pipeline
 import validation_rules
+from click.testing import CliRunner
 from fastapi.testclient import TestClient
 
 
@@ -21,6 +23,13 @@ def test_fastapi_app_mounts_plugin_routes():
     client = TestClient(fastapi_app.build_app())
     assert client.get("/health").json() == {"status": "ok"}
     assert client.get("/hello/Ada").json() == {"message": "hello Ada"}
+
+
+def test_cli_app_mounts_plugin_commands():
+    runner = CliRunner()
+    cli = cli_app.build_cli()
+    assert runner.invoke(cli, ["greet", "Ada"]).output.strip() == "hello Ada"
+    assert runner.invoke(cli, ["version"]).output.strip() == "1.0.0"
 
 
 def test_report_builder_orders_sections_and_frames_body():

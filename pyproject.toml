@@ -34,6 +34,7 @@ dev = [
   "fastapi>=0.115.0",  # for the FastAPI integration example
   "httpx>=0.28.0",  # TestClient for the FastAPI example test
   "uvicorn>=0.34.0",  # to serve the FastAPI example
+  "click>=8.1.0",  # for the Click CLI integration example
   "mkdocs>=1.6.1",
   "mkdocs-material>=9.7.6",
   "mkdocstrings[python]>=1.0.4",

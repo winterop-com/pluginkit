@@ -714,6 +714,7 @@ source = { editable = "." }
 
 [package.dev-dependencies]
 dev = [
+    { name = "click" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "mkdocs" },
@@ -733,6 +734,7 @@ dev = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "click", specifier = ">=8.1.0" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "mkdocs", specifier = ">=1.6.1" },

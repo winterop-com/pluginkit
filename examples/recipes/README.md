@@ -12,6 +12,7 @@ uv run python examples/recipes/text_pipeline.py
 uv run python examples/recipes/app_lifecycle.py
 uv run python examples/recipes/async_fetch.py
 uv run python examples/recipes/fastapi_app.py
+uv run python examples/recipes/cli_app.py --help
 ```
 
 | Example | Domain | pluginkit features |
@@ -24,6 +25,7 @@ uv run python examples/recipes/fastapi_app.py
 | `app_lifecycle.py` | App startup | `historic` config replayed to late plugins, collecting health check, `get_hookcallers` introspection |
 | `async_fetch.py` | Async aggregation | `AsyncPluginManager` awaiting coroutine sources, observe-only async wrapper |
 | `fastapi_app.py` | Web API | a hook that lets plugins contribute FastAPI routes - see [docs](../../docs/integrations/fastapi.md) |
+| `cli_app.py` | Command line | a hook that lets plugins contribute Click subcommands - see [docs](../../docs/integrations/click.md) |
 
 Each script exposes a `run(...)` (or `build_plugin_manager()`/`build_app()`) function
 so the behaviour is covered by `tests/test_examples.py`.

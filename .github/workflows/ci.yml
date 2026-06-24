@@ -7,8 +7,14 @@ on:
     branches: [ main ]
 
 jobs:
-  lint-and-test:
+  ci:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    env:
+      UV_PYTHON: ${{ matrix.python }}
 
     steps:
     - uses: actions/checkout@v6
@@ -21,18 +27,24 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v6
       with:
-        python-version: "3.13"
+        python-version: ${{ matrix.python }}
 
     - name: Install dependencies
       run: make install
 
     - name: Run linting
+      if: matrix.python == '3.13'
       run: make lint
 
+    - name: Run tests
+      run: make test
+
     - name: Run tests with coverage
+      if: matrix.python == '3.13'
       run: make coverage
 
     - name: Upload coverage reports to Codecov
+      if: matrix.python == '3.13'
       uses: codecov/codecov-action@v7
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

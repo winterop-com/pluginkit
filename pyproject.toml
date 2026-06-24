@@ -5,12 +5,14 @@ description = "A small, dependency-free plugin framework: hook specs, entry-poin
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]
 license = { text = "MIT" }
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 keywords = ["plugins", "hooks", "protocol", "entry-points"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
@@ -54,7 +56,7 @@ pluginkit-tour = { workspace = true }
 smoothie-extra = { workspace = true }
 
 [tool.ruff]
-target-version = "py313"
+target-version = "py311"
 line-length = 120
 
 [tool.ruff.lint]
@@ -83,7 +85,7 @@ pythonpath = ["examples/recipes", "examples/integrations"]
 norecursedirs = [".git", ".venv", "__pycache__"]
 
 [tool.mypy]
-python_version = "3.13"
+python_version = "3.11"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -108,7 +110,7 @@ disable_error_code = ["empty-body"]
 include = ["src", "tests", "examples/recipes", "examples/integrations", "examples/tour/src"]
 extraPaths = ["examples/recipes", "examples/integrations", "examples/tour/src"]
 exclude = ["**/.venv"]
-pythonVersion = "3.13"
+pythonVersion = "3.11"
 typeCheckingMode = "strict"
 useLibraryCodeForTypes = true
 reportPrivateUsage = false

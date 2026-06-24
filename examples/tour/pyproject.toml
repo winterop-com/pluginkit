@@ -3,7 +3,7 @@ name = "pluginkit-tour"
 version = "0.1.0"
 description = "A worked example host (the smoothie kitchen) demonstrating pluginkit"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.11"
 # Depends on the pluginkit library plus typer for the walkthrough CLI.
 dependencies = ["pluginkit", "typer>=0.24.2"]
 

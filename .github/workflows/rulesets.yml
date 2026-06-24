@@ -1,0 +1,64 @@
+name: rulesets
+
+# Rulesets as code. Every *.json under .github/rulesets/ is applied to this repo,
+# idempotently: a ruleset with the same name is updated in place, otherwise created.
+# This is the no-Enterprise way to manage repo protection declaratively - drop this
+# file plus a .github/rulesets/ folder into any repo and it self-applies.
+#
+# Token: managing rulesets needs admin. The built-in GITHUB_TOKEN often returns
+# "Resource not accessible by integration" for ruleset writes, so set a fine-grained
+# PAT with "Administration: read and write" on the repo as the RULESETS_TOKEN secret.
+# The workflow falls back to GITHUB_TOKEN if that secret is absent (and will tell you
+# in the logs if it lacks permission).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/rulesets/**"
+      - ".github/workflows/rulesets.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  administration: write  # lets GITHUB_TOKEN manage rulesets where the plan allows
+
+concurrency:
+  group: rulesets-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Apply rulesets
+        env:
+          GH_TOKEN: ${{ secrets.RULESETS_TOKEN || secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(.github/rulesets/*.json)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No rulesets under .github/rulesets/ - nothing to do."
+            exit 0
+          fi
+
+          # Snapshot existing rulesets once (name -> id).
+          existing="$(gh api "repos/$REPO/rulesets" --paginate)"
+
+          for f in "${files[@]}"; do
+            name="$(jq -r '.name' "$f")"
+            id="$(jq -r --arg n "$name" '.[] | select(.name==$n) | .id' <<<"$existing" | head -1)"
+            echo "::group::$name ($f)"
+            if [ -n "$id" ] && [ "$id" != "null" ]; then
+              echo "Updating existing ruleset #$id"
+              gh api -X PUT "repos/$REPO/rulesets/$id" --input "$f" --jq '.name + ": " + .enforcement'
+            else
+              echo "Creating ruleset"
+              gh api -X POST "repos/$REPO/rulesets" --input "$f" --jq '.name + ": " + .enforcement'
+            fi
+            echo "::endgroup::"
+          done

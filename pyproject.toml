@@ -1,14 +1,16 @@
 [project]
 name = "pluginkit"
 version = "0.1.0"
-description = "A small, dependency-free, pluggy-style plugin framework built from scratch with modern Python"
+description = "A small, dependency-free plugin framework: hook specs, entry-point discovery, and sync/async dispatch"
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]
+license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.13"
-keywords = ["plugins", "hooks", "pluggy", "protocol", "entry-points"]
+keywords = ["plugins", "hooks", "protocol", "entry-points"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",
@@ -16,16 +18,22 @@ classifiers = [
 # The library itself has ZERO runtime dependencies (standard library only).
 dependencies = []
 
+[project.urls]
+Homepage = "https://github.com/winterop-com/pluginkit"
+Repository = "https://github.com/winterop-com/pluginkit"
+Issues = "https://github.com/winterop-com/pluginkit/issues"
+Documentation = "https://winterop-com.github.io/pluginkit"
+
 [dependency-groups]
 dev = [
   "mypy>=1.20.2",
   "pyright>=1.1.409",
   "ruff>=0.15.12",
   "pytest>=9.0.3",
+  "pytest-cov>=7.1.0",
   "mkdocs>=1.6.1",
   "mkdocs-material>=9.7.6",
   "mkdocstrings[python]>=1.0.4",
-  "pluggy>=1.5.0",  # only for the head-to-head benchmark, not the library
   "pluginkit-tour",  # the walkthrough host, for tour tests and the docs API page
   "smoothie-extra",
 ]

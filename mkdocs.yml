@@ -46,7 +46,6 @@ nav:
       - Hardening notes: production/hardening.md
       - Lifecycle and validation: production/lifecycle.md
       - Async dispatch: production/async.md
-      - Benchmarks: production/benchmarks.md
       - Differences from pluggy: production/vs-pluggy.md
   - API Reference: api-reference.md
 

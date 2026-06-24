@@ -1,8 +1,9 @@
 # pluginkit
 
-A small, **dependency-free**, [pluggy](https://pluggy.readthedocs.io/en/latest/)-style
-plugin framework built from scratch with modern Python. It shows what a plugin
-system like pluggy actually does under the hood, and is hardened enough to use.
+A small, **dependency-free** plugin framework for Python: declare hook
+specifications, let plugins implement them, and discover plugins via entry points.
+Supports sync and async dispatch, hook ordering, wrappers, pipeline (fold)
+dispatch, and historic hooks - in a few readable files.
 
 The library is three files under `src/pluginkit/` (`markers.py`, `manager.py`,
 `exceptions.py`), has **zero runtime dependencies** (standard library only), and
@@ -54,7 +55,6 @@ src/pluginkit/          the library (pure - no demo code)
 tour/                   pluginkit-tour: a guided CLI walkthrough, one step per mechanism
 examples/               standalone single-file recipes, run directly
 plugins/smoothie-extra/ an external plugin distribution (its own uv project)
-benchmarks/             head-to-head benchmark against pluggy
 docs/                   mkdocs + Material documentation
 tests/                  library, tour, and example tests
 ```
@@ -69,7 +69,6 @@ are independent, real-world recipes you run on their own.
 make install              # uv sync (library + tour + external plugin)
 make test                 # pytest (framework, tour, examples)
 make lint                 # ruff + mypy + pyright
-make bench                # benchmark against pluggy
 make docs-serve           # serve the docs at http://127.0.0.1:8000
 make docs-build           # build the docs (strict)
 ```

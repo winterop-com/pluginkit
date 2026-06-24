@@ -1,4 +1,4 @@
-.PHONY: help install lint test run bench docs docs-serve docs-build clean
+.PHONY: help install lint test coverage run docs docs-serve docs-build clean
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -9,8 +9,8 @@ help:
 	@echo "  install      Install dependencies"
 	@echo "  lint         Run linter and type checkers"
 	@echo "  test         Run tests"
+	@echo "  coverage     Run tests with coverage reporting"
 	@echo "  run          Run every demo end to end (DEMO=name for one)"
-	@echo "  bench        Benchmark pluginkit against pluggy"
 	@echo "  docs-serve   Serve documentation locally with live reload"
 	@echo "  docs-build   Build the documentation site (strict)"
 	@echo "  docs         Alias for docs-serve"
@@ -32,11 +32,12 @@ test:
 	@echo ">>> Running tests"
 	@$(UV) run pytest -q
 
+coverage:
+	@echo ">>> Running tests with coverage"
+	@$(UV) run pytest -q --cov=pluginkit --cov-report=term-missing --cov-report=xml
+
 run:
 	@$(UV) run pluginkit-tour run $(or $(DEMO),all)
-
-bench:
-	@$(UV) run python benchmarks/bench.py
 
 docs-serve:
 	@echo ">>> Serving documentation at http://127.0.0.1:8000"

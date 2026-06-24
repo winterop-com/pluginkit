@@ -17,9 +17,8 @@ same-priority implementations in the order they were registered; pluggy calls th
 in reverse. Both honour `tryfirst`/`trylast` identically - only the within-bucket
 tie-break differs.
 
-Dispatch speed is competitive: after optimisation pluginkit is roughly on par
-with, and in micro-benchmarks slightly faster than, pluggy. See
-[Benchmarks](benchmarks.md) - though speed is not a reason to pick either.
+Dispatch speed is competitive and fast enough in practice; performance is not a
+reason to pick one over the other.
 
 ## Features pluginkit has
 

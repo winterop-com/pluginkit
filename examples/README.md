@@ -1,30 +1,13 @@
-# pluginkit examples
+# Examples
 
-Self-contained scripts using the `pluginkit` library directly. Each one is a
-small, realistic host in a different domain. Run any of them:
+Everything here uses the `pluginkit` library; none of it is part of the published
+package. Three ways to learn it, from quickest to most complete:
 
-```bash
-uv run python examples/quickstart.py
-uv run python examples/report_builder.py
-uv run python examples/notification_router.py
-uv run python examples/validation_rules.py
-uv run python examples/text_pipeline.py
-uv run python examples/app_lifecycle.py
-uv run python examples/async_fetch.py
-```
-
-| Example | Domain | pluginkit features |
+| Directory | What it is | Run it |
 | --- | --- | --- |
-| `quickstart.py` | Greeter | the minimum: one spec, two impls, one collecting call |
-| `report_builder.py` | Document assembly | collecting hook, `tryfirst`/`trylast` ordering, a `wrapper` that frames output |
-| `notification_router.py` | Message routing | `firstresult` selection, `tryfirst`, runtime `set_blocked` |
-| `validation_rules.py` | Rules engine | collecting hook, one-off `call_extra`, runtime `unregister` |
-| `text_pipeline.py` | Text processing | `pipeline` dispatch: each stage transforms the running value |
-| `app_lifecycle.py` | App startup | `historic` config replayed to late plugins, collecting health check, `get_hookcallers` introspection |
-| `async_fetch.py` | Async aggregation | `AsyncPluginManager` awaiting coroutine sources, observe-only async wrapper |
+| [`recipes/`](recipes/) | Standalone single-file scripts, one realistic host each | `uv run python examples/recipes/quickstart.py` |
+| [`tour/`](tour/) | A guided CLI walkthrough that demos one mechanism at a time on a single host (the "smoothie kitchen") | `uv run pluginkit-tour run all` |
+| [`external-plugin/`](external-plugin/) | A separate distribution that the tour discovers via entry points - shows cross-package plugin loading | installed automatically; see `tour/` demo 6 |
 
-Each script exposes a `run(...)` (or `build_plugin_manager()`) function so the
-behaviour is covered by `tests/test_examples.py`.
-
-For a single host that walks through every mechanism one at a time, see the
-bundled demo: `uv run pluginkit-tour run all`.
+Start with `recipes/quickstart.py` for the smallest possible example, or run the
+tour for a narrated pass through every feature.

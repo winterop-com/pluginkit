@@ -43,7 +43,7 @@ requires = ["uv_build>=0.9.0,<0.12.0"]
 build-backend = "uv_build"
 
 [tool.uv.workspace]
-members = ["tour", "plugins/*"]
+members = ["examples/tour", "examples/external-plugin"]
 
 [tool.uv.sources]
 pluginkit-tour = { workspace = true }
@@ -75,7 +75,7 @@ docstring-code-line-length = "dynamic"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["examples"]
+pythonpath = ["examples/recipes"]
 norecursedirs = [".git", ".venv", "__pycache__"]
 
 [tool.mypy]
@@ -87,7 +87,7 @@ check_untyped_defs = true
 no_implicit_optional = true
 warn_unused_ignores = true
 strict_equality = true
-mypy_path = ["src", "tour/src", "examples"]
+mypy_path = ["src", "examples/tour/src", "examples/recipes"]
 
 [[tool.mypy.overrides]]
 module = "tests.*"
@@ -101,8 +101,8 @@ module = "pluginkit_tour.hookspecs"
 disable_error_code = ["empty-body"]
 
 [tool.pyright]
-include = ["src", "tests", "examples", "tour/src"]
-extraPaths = ["examples", "tour/src"]
+include = ["src", "tests", "examples/recipes", "examples/tour/src"]
+extraPaths = ["examples/recipes", "examples/tour/src"]
 exclude = ["**/.venv"]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"

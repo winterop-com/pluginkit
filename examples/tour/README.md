@@ -14,5 +14,5 @@ uv run pluginkit-tour run wrapper
 The host's hook specifications live in `src/pluginkit_tour/hookspecs.py`; each
 `demo_0N_*.py` module is a focused walkthrough of one mechanism. The
 `contrib/honey.py` module is an entry-point plugin (declared in this project's
-`pyproject.toml`), and `plugins/smoothie-extra/` at the repo root is an external
-plugin distribution discovered the same way.
+`pyproject.toml`), and `examples/external-plugin/` is a separate uv project - an
+external plugin distribution discovered the same way.

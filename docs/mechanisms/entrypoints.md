@@ -26,7 +26,7 @@ not change. This repo ships two such plugins:
 
 - `pluginkit_tour.contrib.honey` - an entry point inside the host's own
   distribution.
-- `plugins/smoothie-extra/` - an **external** uv project, installed alongside.
+- `examples/external-plugin/` - an **external** uv project, installed alongside.
 
 ## Resilient loading
 

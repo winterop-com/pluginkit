@@ -79,7 +79,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [src, tour/src]
+          paths: [src, examples/tour/src]
           options:
             docstring_style: google
             show_source: true

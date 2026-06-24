@@ -25,7 +25,7 @@ lint:
 	@$(UV) run ruff format .
 	@$(UV) run ruff check . --fix
 	@echo ">>> Running type checkers"
-	@$(UV) run mypy src tests examples tour/src
+	@$(UV) run mypy src tests examples/recipes examples/tour/src
 	@$(UV) run pyright
 
 test:

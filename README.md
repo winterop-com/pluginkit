@@ -51,17 +51,18 @@ print(pm.hook.greeting(name="Ada"))   # ['hey Ada!']
 ## Layout
 
 ```
-src/pluginkit/          the library (pure - no demo code)
-tour/                   pluginkit-tour: a guided CLI walkthrough, one step per mechanism
-examples/               standalone single-file recipes, run directly
-plugins/smoothie-extra/ an external plugin distribution (its own uv project)
-docs/                   mkdocs + Material documentation
-tests/                  library, tour, and example tests
+src/pluginkit/             the library (pure - no demo code)
+examples/                  everything that uses the library (not shipped):
+  recipes/                   standalone single-file scripts, run directly
+  tour/                      pluginkit-tour: a guided CLI walkthrough
+  external-plugin/           a separate distribution discovered via entry points
+docs/                      mkdocs + Material documentation
+tests/                     library, tour, and recipe tests
 ```
 
-The **tour** and **examples** are two complementary ways to learn it: the tour is
-a guided walkthrough on one host (`pluginkit-tour run all`), while the examples
-are independent, real-world recipes you run on their own.
+Everything that demonstrates the library lives under `examples/`. The **recipes**
+are independent scripts you run on their own; the **tour** is a guided walkthrough
+on one host; the **external-plugin** shows cross-package discovery via entry points.
 
 ## Use it
 
@@ -75,7 +76,7 @@ make docs-build           # build the docs (strict)
 
 ## Two ways to learn it
 
-**The tour** (`tour/`) walks through one mechanism at a time on a single host:
+**The tour** (`examples/tour/`) walks through one mechanism at a time on a single host:
 
 ```bash
 make run                  # run every step
@@ -83,14 +84,14 @@ make run DEMO=wrapper      # run one
 uv run pluginkit-tour list
 ```
 
-**The examples** apply the library to different realistic domains - see
+**The recipes** apply the library to different realistic domains - see
 [`examples/`](examples/README.md):
 
 ```bash
-uv run python examples/report_builder.py
-uv run python examples/notification_router.py
-uv run python examples/validation_rules.py
-uv run python examples/app_lifecycle.py
+uv run python examples/recipes/report_builder.py
+uv run python examples/recipes/notification_router.py
+uv run python examples/recipes/validation_rules.py
+uv run python examples/recipes/app_lifecycle.py
 ```
 
 ## Documentation

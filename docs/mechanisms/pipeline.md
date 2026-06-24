@@ -56,7 +56,7 @@ pm.hook.transform(text="  hello   world  ")   # 'Hello World!'
 The [`text_pipeline.py` example](../index.md) builds a four-stage text cleaner:
 
 ```bash
-uv run python examples/text_pipeline.py
+uv run python examples/recipes/text_pipeline.py
 ```
 
 ```text

@@ -1,13 +1,23 @@
 # pluginkit
 
+[![PyPI](https://img.shields.io/pypi/v/pluginkit.svg)](https://pypi.org/project/pluginkit/)
+[![Python](https://img.shields.io/pypi/pyversions/pluginkit.svg)](https://pypi.org/project/pluginkit/)
+[![CI](https://github.com/winterop-com/pluginkit/actions/workflows/ci.yml/badge.svg)](https://github.com/winterop-com/pluginkit/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-pages-blue.svg)](https://winterop-com.github.io/pluginkit/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A small, **dependency-free** plugin framework for Python: declare hook
 specifications, let plugins implement them, and discover plugins via entry points.
 Supports sync and async dispatch, hook ordering, wrappers, pipeline (fold)
 dispatch, and historic hooks - in a few readable files.
 
 The library is three files under `src/pluginkit/` (`markers.py`, `manager.py`,
-`exceptions.py`), has **zero runtime dependencies** (standard library only), and
-ships a `py.typed` marker.
+`exceptions.py`), has **zero runtime dependencies** (standard library only), runs on
+**Python 3.11+**, and ships a `py.typed` marker.
+
+```bash
+pip install pluginkit   # or: uv add pluginkit
+```
 
 ```python
 from pluginkit import HookspecMarker, HookimplMarker, PluginManager

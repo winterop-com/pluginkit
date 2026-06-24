@@ -1,8 +1,9 @@
 # pluginkit
 
-A small plugin architecture built **from scratch** with modern Python, to show
-what a [pluggy](https://pluggy.readthedocs.io/en/latest/)-style system actually
-does under the hood - hardened enough to use.
+A small, **dependency-free** plugin framework for Python: declare hook
+specifications, let plugins implement them, and discover plugins via entry points.
+Sync and async dispatch, hook ordering, wrappers, pipeline (fold) dispatch, and
+historic hooks - in a few readable files.
 
 The entire library is three small files under `src/pluginkit/`:
 
@@ -10,15 +11,19 @@ The entire library is three small files under `src/pluginkit/`:
 - **manager.py** - the `PluginManager`, `HookRelay`, and `HookCaller`.
 - **exceptions.py** - `PluginValidationError`.
 
-It has **zero runtime dependencies** (standard library only) and ships a
-`py.typed` marker.
+It has **zero runtime dependencies** (standard library only), runs on Python 3.11+,
+and ships a `py.typed` marker.
 
-## Why read this
+```bash
+pip install pluginkit
+```
 
-pluggy is the right choice for production (it powers pytest, tox, and datasette).
-This project exists to make its ideas legible: every concept - hook specs,
-implementations, ordering, wrappers, historic replay, entry-point discovery - is
-implemented in a few dozen lines you can read end to end.
+## What you get
+
+Every plugin concept - hook specs, implementations, ordering, wrappers, pipeline
+dispatch, historic replay, async, and entry-point discovery - in a strictly typed
+library small enough to read end to end. See
+[Differences from pluggy](production/vs-pluggy.md) if you are weighing the two.
 
 ## A 30-second tour
 

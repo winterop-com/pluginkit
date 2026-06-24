@@ -5,7 +5,7 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-06-24
 
 Initial public release.
 

@@ -52,6 +52,7 @@ nav:
   - Integrations:
       - FastAPI: integrations/fastapi.md
       - Click CLI: integrations/click.md
+      - pytest: integrations/pytest.md
   - API Reference: api-reference.md
 
 markdown_extensions:

@@ -7,6 +7,7 @@ import async_fetch
 import cli_app
 import fastapi_app
 import notification_router
+import pytest_plugin
 import quickstart
 import report_builder
 import text_pipeline
@@ -30,6 +31,13 @@ def test_cli_app_mounts_plugin_commands():
     cli = cli_app.build_cli()
     assert runner.invoke(cli, ["greet", "Ada"]).output.strip() == "hello Ada"
     assert runner.invoke(cli, ["version"]).output.strip() == "1.0.0"
+
+
+def test_pytest_plugin_checker_collects_failures():
+    checker = pytest_plugin.build_checker()
+    assert checker.errors("") == ["value is empty"]
+    assert checker.errors(None) == ["value is None"]
+    assert checker.errors("ok") == []
 
 
 def test_report_builder_orders_sections_and_frames_body():

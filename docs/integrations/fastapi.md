@@ -5,7 +5,7 @@ by installing a plugin rather than editing the app. The host owns one hook,
 `register_routes`, and each plugin attaches its own endpoints to a shared router.
 
 Full runnable example:
-[`examples/recipes/fastapi_app.py`](https://github.com/winterop-com/pluginkit/blob/main/examples/recipes/fastapi_app.py).
+[`examples/integrations/fastapi_app.py`](https://github.com/winterop-com/pluginkit/blob/main/examples/integrations/fastapi_app.py).
 
 ## The hook
 

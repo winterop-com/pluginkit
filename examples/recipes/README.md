@@ -1,7 +1,9 @@
 # Recipes
 
-Self-contained scripts using the `pluginkit` library directly. Each one is a
-small, realistic host in a different domain. Run any of them:
+Self-contained scripts using the `pluginkit` library directly, with **no
+third-party dependencies** - each is a small, realistic host in a different domain.
+For framework integrations (FastAPI, Click, pytest) see
+[`../integrations/`](../integrations/). Run any recipe:
 
 ```bash
 uv run python examples/recipes/quickstart.py
@@ -11,8 +13,6 @@ uv run python examples/recipes/validation_rules.py
 uv run python examples/recipes/text_pipeline.py
 uv run python examples/recipes/app_lifecycle.py
 uv run python examples/recipes/async_fetch.py
-uv run python examples/recipes/fastapi_app.py
-uv run python examples/recipes/cli_app.py --help
 ```
 
 | Example | Domain | pluginkit features |
@@ -24,11 +24,9 @@ uv run python examples/recipes/cli_app.py --help
 | `text_pipeline.py` | Text processing | `pipeline` dispatch: each stage transforms the running value |
 | `app_lifecycle.py` | App startup | `historic` config replayed to late plugins, collecting health check, `get_hookcallers` introspection |
 | `async_fetch.py` | Async aggregation | `AsyncPluginManager` awaiting coroutine sources, observe-only async wrapper |
-| `fastapi_app.py` | Web API | a hook that lets plugins contribute FastAPI routes - see [docs](../../docs/integrations/fastapi.md) |
-| `cli_app.py` | Command line | a hook that lets plugins contribute Click subcommands - see [docs](../../docs/integrations/click.md) |
 
-Each script exposes a `run(...)` (or `build_plugin_manager()`/`build_app()`) function
-so the behaviour is covered by `tests/test_examples.py`.
+Each script exposes a `run(...)` (or `build_plugin_manager()`) function so the
+behaviour is covered by `tests/test_examples.py`.
 
 For a single host that walks through every mechanism one at a time, see the
 bundled demo: `uv run pluginkit-tour run all`.

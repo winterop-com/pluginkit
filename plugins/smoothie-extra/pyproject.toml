@@ -1,0 +1,20 @@
+[project]
+name = "smoothie-extra"
+version = "0.1.0"
+description = "An external plugin for the from-scratch kitchen host, its own uv project"
+readme = "README.md"
+requires-python = ">=3.13"
+# Depends on pluginkit for the shared @hookimpl marker bound to the host project.
+dependencies = ["pluginkit"]
+
+# Advertises itself under the host's "kitchen" entry-point group; the host
+# discovers it with load_entrypoints("kitchen") and never edits its own code.
+[project.entry-points.kitchen]
+extra = "smoothie_extra"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+pluginkit = { workspace = true }

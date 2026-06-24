@@ -1,0 +1,22 @@
+[project]
+name = "pluginkit-tour"
+version = "0.1.0"
+description = "A worked example host (the smoothie kitchen) demonstrating pluginkit"
+readme = "README.md"
+requires-python = ">=3.13"
+# Depends on the pluginkit library plus typer for the walkthrough CLI.
+dependencies = ["pluginkit", "typer>=0.24.2"]
+
+[project.scripts]
+pluginkit-tour = "pluginkit_tour.cli:main"
+
+# Entry-point group for the discovery demo, read with the stdlib importlib.metadata.
+[project.entry-points.kitchen]
+honey = "pluginkit_tour.contrib.honey"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.sources]
+pluginkit = { workspace = true }

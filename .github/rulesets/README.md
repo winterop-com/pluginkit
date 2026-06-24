@@ -20,10 +20,17 @@ rulesets are available to everyone (private repos need GitHub Team).
 
 ## Token
 
-Managing rulesets needs admin. The built-in `GITHUB_TOKEN` is often rejected for
-ruleset writes, so set a fine-grained PAT with **Administration: read and write** on
-the repo as the `RULESETS_TOKEN` secret. The workflow uses it when present and falls
-back to `GITHUB_TOKEN` otherwise.
+Managing rulesets needs admin, and the built-in `GITHUB_TOKEN` can **not** be
+granted it - the workflow `permissions:` block has no `administration` scope, so the
+token can never manage rulesets. Set a fine-grained PAT with **Administration: read
+and write** on the repo as the `RULESETS_TOKEN` secret:
+
+```bash
+gh secret set RULESETS_TOKEN --repo OWNER/REPO   # paste the PAT when prompted
+```
+
+Without that secret the job emits a warning and skips (it stays green rather than
+failing), so rulesets remain whatever you last applied by hand.
 
 ## Reuse across repos
 

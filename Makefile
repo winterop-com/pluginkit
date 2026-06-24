@@ -2,6 +2,9 @@
 
 UV := $(shell command -v uv 2> /dev/null)
 
+# Silence the "Material for MkDocs / MkDocs 2.0" announcement banner.
+export NO_MKDOCS_2_WARNING := true
+
 help:
 	@echo "Usage: make [target]"
 	@echo ""

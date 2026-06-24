@@ -4,13 +4,13 @@ version = "0.1.0"
 description = "A small, dependency-free plugin framework: hook specs, entry-point discovery, and sync/async dispatch"
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]
-license = { text = "AGPL-3.0-or-later" }
+license = { text = "MIT" }
 requires-python = ">=3.13"
 keywords = ["plugins", "hooks", "protocol", "entry-points"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3.13",
   "Topic :: Software Development :: Libraries :: Python Modules",
   "Typing :: Typed",

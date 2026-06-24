@@ -49,6 +49,8 @@ nav:
       - Lifecycle and validation: production/lifecycle.md
       - Async dispatch: production/async.md
       - Differences from pluggy: production/vs-pluggy.md
+  - Integrations:
+      - FastAPI: integrations/fastapi.md
   - API Reference: api-reference.md
 
 markdown_extensions:

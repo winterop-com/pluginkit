@@ -1,6 +1,6 @@
 [project]
 name = "pluginkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "A small, dependency-free plugin framework: hook specs, entry-point discovery, and sync/async dispatch"
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]

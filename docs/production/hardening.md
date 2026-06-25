@@ -23,7 +23,7 @@ Covered by `test_wrapper_cleanup_runs_when_inner_impl_raises` and
 Two checks run at registration, turning silent misbehaviour into loud errors:
 
 - **unknown hook** - an implementation whose name matches no spec raises
-  `PluginValidationError` (unless marked `optionalhook`).
+  `PluginValidationError` (unless marked `optional`).
 - **unknown argument** - an implementation that declares a parameter the spec does
   not have raises `PluginValidationError`. Without this, a typo like `def
   greet(self, nam)` would silently never receive its value, because the kwarg

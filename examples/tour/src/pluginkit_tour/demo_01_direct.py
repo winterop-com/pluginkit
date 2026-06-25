@@ -1,20 +1,20 @@
 """Demo 1: register plugins directly, and type them against a Protocol.
 
 The host hands plugin objects to the manager itself. The IngredientProvider
-Protocol from hookspecs lets a checker confirm each plugin's add_ingredients
+Protocol from points lets a checker confirm each plugin's add_ingredients
 signature matches, structurally, without any shared base class.
 """
 
 from pluginkit import PluginManager
-from pluginkit_tour import hookspecs
-from pluginkit_tour.hookspecs import IngredientProvider
-from pluginkit_tour.markers import PROJECT_NAME, hookimpl
+from pluginkit_tour import points
+from pluginkit_tour.markers import PROJECT_NAME, extension
+from pluginkit_tour.points import IngredientProvider
 
 
 class BerryPlugin:
     """A plugin defined as a class instance."""
 
-    @hookimpl
+    @extension
     def add_ingredients(self, base: list[str]) -> list[str]:
         """Contribute berries unless they are already in the base."""
         return ["blueberry", "strawberry"] if "berry" not in base else []
@@ -23,7 +23,7 @@ class BerryPlugin:
 class GreensPlugin:
     """Another class-based plugin."""
 
-    @hookimpl
+    @extension
     def add_ingredients(self, base: list[str]) -> list[str]:
         """Contribute leafy greens."""
         return ["spinach", "kale"]
@@ -32,7 +32,7 @@ class GreensPlugin:
 def build_plugin_manager() -> PluginManager:
     """Create a manager and register two plugins directly."""
     pm = PluginManager(PROJECT_NAME)
-    pm.add_hookspecs(hookspecs)
+    pm.add_extension_points(points)
     # The annotation documents (and lets a checker verify) the structural contract.
     berry: IngredientProvider = BerryPlugin()
     greens: IngredientProvider = GreensPlugin()
@@ -45,7 +45,7 @@ def make_smoothie() -> list[str]:
     """Collect ingredients from every registered plugin."""
     pm = build_plugin_manager()
     base = ["banana", "milk"]
-    contributed = pm.caller(hookspecs.add_ingredients)(base=base)
+    contributed = pm.caller(points.add_ingredients)(base=base)
     return base + [item for plugin_result in contributed for item in plugin_result]
 
 

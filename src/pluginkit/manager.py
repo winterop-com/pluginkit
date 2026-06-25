@@ -28,10 +28,10 @@ from typing import Any, NoReturn, Self, overload
 from pluginkit.exceptions import PluginValidationError
 from pluginkit.markers import (
     CollectingSpec,
+    ExtensionOpts,
+    ExtensionPointOpts,
     FirstResultSpec,
     HistoricSpec,
-    HookimplOpts,
-    HookspecOpts,
     PipelineSpec,
 )
 
@@ -45,7 +45,7 @@ class HookImpl:
 
     plugin_name: str
     function: Callable[..., Any]
-    opts: HookimplOpts
+    opts: ExtensionOpts
     accepts: frozenset[str]
     params: tuple[str, ...]
     # Set by the caller once it knows the hook's full argument set: True when this
@@ -53,7 +53,7 @@ class HookImpl:
     passthrough: bool = False
 
     @classmethod
-    def from_function(cls, plugin_name: str, function: Callable[..., Any], opts: HookimplOpts) -> Self:
+    def from_function(cls, plugin_name: str, function: Callable[..., Any], opts: ExtensionOpts) -> Self:
         """Build an impl, recording which keyword arguments the function declares."""
         params = tuple(inspect.signature(function).parameters)
         return cls(plugin_name=plugin_name, function=function, opts=opts, accepts=frozenset(params), params=params)
@@ -73,9 +73,9 @@ class HookImpl:
     def order_key(self) -> int:
         """Sort key: tryfirst impls run first (0), normal next (1), trylast last (2)."""
         match self.opts:
-            case HookimplOpts(tryfirst=True):
+            case ExtensionOpts(tryfirst=True):
                 return 0
-            case HookimplOpts(trylast=True):
+            case ExtensionOpts(trylast=True):
                 return 2
             case _:
                 return 1
@@ -86,7 +86,7 @@ class HookCaller:
     """Holds every implementation of one hook and dispatches calls to them."""
 
     name: str
-    spec: HookspecOpts
+    spec: ExtensionPointOpts
     params: tuple[str, ...] = ()
     argnames: frozenset[str] = frozenset()
     # Default values for spec params that declare one. A call may omit these (the
@@ -152,7 +152,7 @@ class HookCaller:
         """Build one-off impls for call_extra, validating their args against the spec."""
         extra: list[HookImpl] = []
         for function in functions:
-            impl = HookImpl.from_function("<call_extra>", function, HookimplOpts())
+            impl = HookImpl.from_function("<call_extra>", function, ExtensionOpts())
             unknown = impl.accepts - self.argnames
             if unknown:
                 raise TypeError(f"call_extra impl for {self.name!r} declares unknown argument(s) {sorted(unknown)}")
@@ -374,19 +374,19 @@ class PluginManager:
         """Bind the manager to a project name shared with the markers."""
         self.project_name = project_name
         self.hook = HookRelay()
-        self._spec_attribute = f"{project_name}_spec"
-        self._impl_attribute = f"{project_name}_impl"
+        self._spec_attribute = f"{project_name}_extension_point"
+        self._impl_attribute = f"{project_name}_extension"
         self._name2plugin: dict[str, object] = {}
         self._blocked: set[str] = set()
         self._lock = threading.RLock()
 
-    def add_hookspecs(self, namespace: object) -> None:
-        """Scan a module (or object) for hook specifications and create callers."""
+    def add_extension_points(self, namespace: object) -> None:
+        """Scan a module (or object) for extension points and create callers."""
         with self._lock:
             for member_name in dir(namespace):
                 member = getattr(namespace, member_name)
                 spec = getattr(member, self._spec_attribute, None)
-                if not isinstance(spec, HookspecOpts):
+                if not isinstance(spec, ExtensionPointOpts):
                     continue
                 signature = inspect.signature(member)
                 params = tuple(signature.parameters)
@@ -399,7 +399,7 @@ class PluginManager:
                 self.hook._add_caller(self._make_caller(member_name, spec, params, defaults))
 
     def _make_caller(
-        self, name: str, spec: HookspecOpts, params: tuple[str, ...], defaults: dict[str, Any]
+        self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any]
     ) -> HookCaller:
         """Build the caller for a spec; overridden by AsyncPluginManager."""
         return HookCaller(name=name, spec=spec, params=params, defaults=defaults)
@@ -413,26 +413,28 @@ class PluginManager:
     @overload
     def caller[**P, R](self, spec: CollectingSpec[P, R]) -> CollectingCaller[P, R]: ...
     def caller(self, spec: object) -> HookCaller:
-        """Return the typed caller for a `@hookspec`-decorated spec function.
+        """Return the typed caller for an `@extension_point`-decorated function.
 
-        The result is a plain `HookCaller`, but its static type carries the spec's
-        dispatch mode, so a call returns `list[R]` (collecting), `R | None`
-        (firstresult), or `R` (pipeline) - derived from the spec, not asserted.
+        The result is a plain `HookCaller`, but its static type carries the extension
+        point's dispatch mode, so a call returns `list[R]` (collecting), `R | None`
+        (firstresult), or `R` (pipeline) - derived from the declaration, not asserted.
         """
         return self._caller(spec)
 
     def _caller(self, spec: object) -> HookCaller:
-        """Resolve a spec function to its registered caller (shared by subclasses)."""
+        """Resolve an extension point to its registered caller (shared by subclasses)."""
         name = getattr(spec, "__name__", None)
         if not isinstance(name, str):
-            raise TypeError("caller() expects a @hookspec-decorated function")
+            raise TypeError("caller() expects an @extension_point-decorated function")
         found = self.hook._get_caller(name)
         if found is None:
-            raise PluginValidationError(self.project_name, f"unknown hook spec {name!r}; call add_hookspecs() first")
+            raise PluginValidationError(
+                self.project_name, f"unknown extension point {name!r}; call add_extension_points() first"
+            )
         return found
 
     @staticmethod
-    def _validate_spec(name: str, spec: HookspecOpts, params: tuple[str, ...]) -> None:
+    def _validate_spec(name: str, spec: ExtensionPointOpts, params: tuple[str, ...]) -> None:
         """Reject contradictory or impossible spec option combinations."""
         modes = [
             mode
@@ -566,14 +568,14 @@ class PluginManager:
         for member_name in dir(plugin):
             member = getattr(plugin, member_name)
             opts = getattr(member, self._impl_attribute, None)
-            if not isinstance(opts, HookimplOpts):
+            if not isinstance(opts, ExtensionOpts):
                 continue
-            hook_name = opts.specname or member_name
+            hook_name = opts.target or member_name
             caller = self.hook._get_caller(hook_name)
             if caller is None:
-                if opts.optionalhook:
+                if opts.optional:
                     continue
-                raise PluginValidationError(plugin_name, f"implements unknown hook {hook_name!r}")
+                raise PluginValidationError(plugin_name, f"implements unknown extension point {hook_name!r}")
             if opts.wrapper and caller.spec.historic:
                 raise PluginValidationError(plugin_name, f"historic hook {hook_name!r} cannot have a wrapper")
             impl = HookImpl.from_function(plugin_name, member, opts)

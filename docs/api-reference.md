@@ -9,7 +9,7 @@ top-level `pluginkit` package.
 
 ## Markers
 
-The `@hookspec` / `@hookimpl` decorators and the option records they stamp.
+The `@extension_point` / `@extension` decorators and the option records they stamp.
 
 ::: pluginkit.markers
 
@@ -33,6 +33,6 @@ The async manager and hook caller.
 
 The bundled "smoothie kitchen" host that the walkthrough demos use.
 
-### Hook specifications
+### Extension points
 
-::: pluginkit_tour.hookspecs
+::: pluginkit_tour.points

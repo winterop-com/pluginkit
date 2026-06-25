@@ -11,8 +11,8 @@ project-namespaced attribute. Nothing else happens at decoration time - the
 manager reads those attributes later by introspection.
 
 ```python
-hookspec = HookspecMarker("kitchen")   # stamps  func.kitchen_spec = HookspecOpts(...)
-hookimpl = HookimplMarker("kitchen")   # stamps  func.kitchen_impl = HookimplOpts(...)
+extension_point = ExtensionPoint("kitchen")   # stamps  func.kitchen_spec = ExtensionPointOpts(...)
+extension = Extension("kitchen")   # stamps  func.kitchen_impl = ExtensionOpts(...)
 ```
 
 Because the marker only sets an attribute and returns the function unchanged, a
@@ -21,20 +21,20 @@ plugin method directly.
 
 ## Bare vs called forms
 
-Both markers support `@hookimpl` and `@hookimpl(...)`. This is expressed with
+Both markers support `@extension` and `@extension(...)`. This is expressed with
 `typing.overload` so a type checker understands both:
 
 ```python
-@hookimpl                       # bare form
+@extension                       # bare form
 def add_ingredients(self, base): ...
 
-@hookimpl(tryfirst=True)        # called form with options
+@extension(tryfirst=True)        # called form with options
 def prep_step(self, steps): ...
 ```
 
 ## Spec options
 
-`@hookspec` accepts:
+`@extension_point` accepts:
 
 | Option | Meaning |
 | --- | --- |
@@ -46,15 +46,15 @@ combination when the specs are added.
 
 ## Implementation options
 
-`@hookimpl` accepts:
+`@extension` accepts:
 
 | Option | Meaning |
 | --- | --- |
 | `tryfirst` | Run earlier than normal implementations. |
 | `trylast` | Run later than normal implementations. |
 | `wrapper` | This implementation is a generator that wraps the others. See [Wrappers](../mechanisms/wrappers.md). |
-| `optionalhook` | Do not error if the host never declared a matching spec. |
-| `specname` | Bind to a spec whose name differs from the method name. |
+| `optional` | Do not error if the host never declared a matching spec. |
+| `target` | Bind to a spec whose name differs from the method name. |
 
 ## Empty spec bodies
 
@@ -63,7 +63,7 @@ never calls them; they exist only to declare a name and signature. The type
 checkers are told to ignore the "missing return" complaint for the specs module.
 
 ```python
-@hookspec
+@extension_point
 def choose_cup(size: str) -> str | None:
     """Pick a cup for the size; the first plugin to answer wins."""
     # no body on purpose

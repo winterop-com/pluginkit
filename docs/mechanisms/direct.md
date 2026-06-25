@@ -6,10 +6,10 @@ manager itself. Source:
 
 ```python
 from pluginkit import PluginManager
-from pluginkit_tour.hookspecs import IngredientProvider
+from pluginkit_tour.points import IngredientProvider
 
 pm = PluginManager("kitchen")
-pm.add_hookspecs(hookspecs)
+pm.add_extension_points(points)
 
 berry: IngredientProvider = BerryPlugin()
 greens: IngredientProvider = GreensPlugin()

@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A small, **strictly-typed**, generics-first plugin framework for **Python 3.13+**.
-Declare hook specifications, let plugins implement them, discover plugins via entry
+Declare extension points, let plugins implement them, discover plugins via entry
 points - and, unlike untyped hook systems, get the **right return type for every
 call**, derived from the spec and checked by your type checker.
 
@@ -21,27 +21,27 @@ pip install pluginkit   # or: uv add pluginkit
 ```
 
 ```python
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("greeter")
-hookimpl = HookimplMarker("greeter")
+extension_point = ExtensionPoint("greeter")
+extension = Extension("greeter")
 
 
 class Specs:
     @staticmethod
-    @hookspec
+    @extension_point
     def greeting(name: str) -> str:
         """Return a greeting for the given name."""
 
 
 class Casual:
-    @hookimpl
+    @extension
     def greeting(self, name: str) -> str:
         return f"hey {name}!"
 
 
 pm = PluginManager("greeter")
-pm.add_hookspecs(Specs)
+pm.add_extension_points(Specs)
 pm.register(Casual(), name="casual")
 
 greetings = pm.caller(Specs.greeting)(name="Ada")   # typed list[str] - derived, not asserted
@@ -51,7 +51,7 @@ print(greetings)                                     # ['hey Ada!']
 ## What it supports
 
 - collecting, `firstresult`, and **pipeline** (fold/middleware) hooks;
-- call ordering with `tryfirst` / `trylast`, plus `optionalhook` and `specname`;
+- call ordering with `tryfirst` / `trylast`, plus `optional` and `target`;
 - generator **wrappers** that decorate results and observe exceptions safely;
 - **historic** hooks replayed to plugins registered later;
 - **async** dispatch via `AsyncPluginManager` (awaits coroutine impls);

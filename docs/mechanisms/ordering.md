@@ -3,17 +3,17 @@
 By default implementations run in registration order. Two markers override that
 without touching registration:
 
-- `@hookimpl(tryfirst=True)` runs earlier;
-- `@hookimpl(trylast=True)` runs later.
+- `@extension(tryfirst=True)` runs earlier;
+- `@extension(trylast=True)` runs later.
 
 ```python
 class WashPlugin:
-    @hookimpl(tryfirst=True)
+    @extension(tryfirst=True)
     def prep_step(self, steps: list[str]) -> None:
         steps.append("wash produce")
 
 class GarnishPlugin:
-    @hookimpl(trylast=True)
+    @extension(trylast=True)
     def prep_step(self, steps: list[str]) -> None:
         steps.append("add garnish")
 ```
@@ -37,15 +37,15 @@ markers, not registration, decide the outcome.
     the tie-break within a bucket differs. See
     [Differences from pluggy](../production/vs-pluggy.md).
 
-## optionalhook
+## optional
 
 A plugin may implement a hook the host never declared. Normally that is an error
-(it usually means a typo), but `optionalhook=True` makes it tolerated - useful
+(it usually means a typo), but `optional=True` makes it tolerated - useful
 when one plugin targets several host versions:
 
 ```python
 class GarnishPlugin:
-    @hookimpl(optionalhook=True)
+    @extension(optional=True)
     def not_a_real_hook(self) -> None:
         """Ignored cleanly if the host never specified this hook."""
 ```

@@ -11,7 +11,7 @@ uv run pluginkit-tour run all
 uv run pluginkit-tour run wrapper
 ```
 
-The host's hook specifications live in `src/pluginkit_tour/hookspecs.py`; each
+The host's extension points live in `src/pluginkit_tour/points.py`; each
 `demo_0N_*.py` module is a focused walkthrough of one mechanism. The
 `contrib/honey.py` module is an entry-point plugin (declared in this project's
 `pyproject.toml`), and `examples/external-plugin/` is a separate uv project - an

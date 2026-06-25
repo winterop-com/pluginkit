@@ -5,7 +5,7 @@ non-`None` value and returns that value directly - not a list. It is the right
 shape for **selection** and **resolution**: cup choosers, routers, resolvers.
 
 ```python
-@hookspec(firstresult=True)
+@extension_point(firstresult=True)
 def choose_cup(size: str) -> str | None:
     """Pick a cup for the size; the first plugin to answer wins."""
 ```
@@ -17,7 +17,7 @@ implementation in order is then given a chance.
 
 ```python
 class SmallCupPlugin:
-    @hookimpl
+    @extension
     def choose_cup(self, size: str) -> str | None:
         return "8oz paper cup" if size == "small" else None   # abstain otherwise
 ```
@@ -29,7 +29,7 @@ fallback only runs when they all abstain:
 
 ```python
 class FallbackCupPlugin:
-    @hookimpl(trylast=True)
+    @extension(trylast=True)
     def choose_cup(self, size: str) -> str | None:
         return "16oz default cup"
 ```
@@ -50,7 +50,7 @@ medium -> 16oz default cup
 
 - If every implementation abstains, the call returns `None`.
 - `firstresult` cannot be combined with `historic`; the manager rejects that at
-  `add_hookspecs` time.
+  `add_extension_points` time.
 
 See also the [notification router example](../index.md), which routes a message
 to the first channel that accepts it.

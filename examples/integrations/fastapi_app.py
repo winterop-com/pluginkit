@@ -9,17 +9,17 @@ Run: python examples/integrations/fastapi_app.py   (serves on http://127.0.0.1:8
 
 from fastapi import APIRouter, FastAPI
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("webapp")
-hookimpl = HookimplMarker("webapp")
+extension_point = ExtensionPoint("webapp")
+extension = Extension("webapp")
 
 
 class Specs:
     """The contract the app exposes to route plugins."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def register_routes(router: APIRouter) -> None:
         """Attach endpoints to the shared router."""
 
@@ -27,7 +27,7 @@ class Specs:
 class HealthPlugin:
     """Adds a liveness endpoint."""
 
-    @hookimpl
+    @extension
     def register_routes(self, router: APIRouter) -> None:
         """Mount GET /health."""
 
@@ -39,7 +39,7 @@ class HealthPlugin:
 class GreetingPlugin:
     """Adds a greeting endpoint."""
 
-    @hookimpl
+    @extension
     def register_routes(self, router: APIRouter) -> None:
         """Mount GET /hello/{name}."""
 
@@ -51,7 +51,7 @@ class GreetingPlugin:
 def build_app(*plugins: object) -> FastAPI:
     """Build a FastAPI app whose routes come entirely from registered plugins."""
     pm = PluginManager("webapp")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     for plugin in plugins or (HealthPlugin(), GreetingPlugin()):
         pm.register(plugin)
     router = APIRouter()

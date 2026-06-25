@@ -6,28 +6,28 @@ manager - only the calling path is awaited.
 
 ```python
 import asyncio
-from pluginkit import AsyncPluginManager, HookspecMarker, HookimplMarker
+from pluginkit import AsyncPluginManager, ExtensionPoint, Extension
 
-hookspec = HookspecMarker("feed")
-hookimpl = HookimplMarker("feed")
+extension_point = ExtensionPoint("feed")
+extension = Extension("feed")
 
 
 class Specs:
     @staticmethod
-    @hookspec
+    @extension_point
     def fetch(topic: str) -> str:
         """Fetch a headline for the topic."""
 
 
 class WeatherSource:
-    @hookimpl
+    @extension
     async def fetch(self, topic: str) -> str:
         await asyncio.sleep(0.01)
         return f"weather[{topic}]: clear skies"
 
 
 pm = AsyncPluginManager("feed")
-pm.add_hookspecs(Specs)
+pm.add_extension_points(Specs)
 pm.register(WeatherSource(), name="weather")
 
 headlines = asyncio.run(pm.caller(Specs.fetch)(topic="harbor"))
@@ -51,7 +51,7 @@ Async wrappers are async generators:
 
 ```python
 class TimingWrapper:
-    @hookimpl(wrapper=True)
+    @extension(wrapper=True)
     async def fetch(self, topic: str):
         start = monotonic()
         try:

@@ -11,21 +11,21 @@ Full runnable example:
 ## The hook and a plugin
 
 ```python
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("checks")
-hookimpl = HookimplMarker("checks")
+extension_point = ExtensionPoint("checks")
+extension = Extension("checks")
 
 
 class Specs:
     @staticmethod
-    @hookspec
+    @extension_point
     def check(value: object) -> str | None:
         """Return an error message if value fails this check, else None."""
 
 
 class NotNonePlugin:
-    @hookimpl
+    @extension
     def check(self, value: object) -> str | None:
         return "value is None" if value is None else None
 ```
@@ -40,7 +40,7 @@ import pytest
 
 def build_checker(*plugins: object) -> Checker:
     pm = PluginManager("checks")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     for plugin in plugins or (NonEmptyPlugin(), NotNonePlugin()):
         pm.register(plugin)
     return Checker(pm)

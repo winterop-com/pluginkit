@@ -6,7 +6,7 @@ configuration loaded - where some plugins may load late (for example via
 entry-point discovery that runs after the event already fired).
 
 ```python
-@hookspec(historic=True)
+@extension_point(historic=True)
 def kitchen_opened(name: str) -> None:
     """Announce the kitchen opened; late plugins still hear it."""
 ```
@@ -43,7 +43,7 @@ time, and again for each late plugin as it is registered.
 ## Constraints
 
 - A historic hook cannot be `firstresult` (replay has no single "winner"); the
-  manager rejects that combination at `add_hookspecs` time.
+  manager rejects that combination at `add_extension_points` time.
 
 ## Run it
 

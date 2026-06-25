@@ -9,7 +9,7 @@ the same hook. It is a generator:
 
 ```python
 class FoamWrapper:
-    @hookimpl(wrapper=True)
+    @extension(wrapper=True)
     def blend(self, contents: list[str]) -> Generator[None, str, str]:
         result = yield
         return f"{result} topped with foam"
@@ -29,7 +29,7 @@ or recover. This is what makes wrappers safe for resources:
 
 ```python
 class TimingWrapper:
-    @hookimpl(wrapper=True)
+    @extension(wrapper=True)
     def blend(self, contents):
         start = perf_counter()
         try:
@@ -42,7 +42,7 @@ A wrapper may also swallow the exception by returning a value instead of
 re-raising, which becomes the result the caller sees:
 
 ```python
-@hookimpl(wrapper=True)
+@extension(wrapper=True)
 def blend(self, contents):
     try:
         return (yield)

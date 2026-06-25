@@ -12,15 +12,15 @@ Full runnable example:
 
 ```python
 import click
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("cli")
-hookimpl = HookimplMarker("cli")
+extension_point = ExtensionPoint("cli")
+extension = Extension("cli")
 
 
 class Specs:
     @staticmethod
-    @hookspec
+    @extension_point
     def register_commands(cli: click.Group) -> None:
         """Attach subcommands to the root CLI group."""
 ```
@@ -29,7 +29,7 @@ class Specs:
 
 ```python
 class GreetPlugin:
-    @hookimpl
+    @extension
     def register_commands(self, cli: click.Group) -> None:
         @cli.command()
         @click.argument("name")
@@ -49,7 +49,7 @@ def build_cli(*plugins: object) -> click.Group:
         """A CLI assembled entirely from plugins."""
 
     pm = PluginManager("cli")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     for plugin in plugins or (GreetPlugin(), VersionPlugin()):
         pm.register(plugin)
     pm.caller(Specs.register_commands)(cli=cli)

@@ -13,22 +13,22 @@ Run: python examples/report_builder.py
 
 from collections.abc import Generator
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("report")
-hookimpl = HookimplMarker("report")
+extension_point = ExtensionPoint("report")
+extension = Extension("report")
 
 
 class Specs:
     """The report host's contract."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def section(data: dict[str, int]) -> str:
         """Return one section of the report for the given data."""
 
     @staticmethod
-    @hookspec(firstresult=True)
+    @extension_point(firstresult=True)
     def render(body: str) -> str:
         """Render the assembled body into the final document."""
 
@@ -36,7 +36,7 @@ class Specs:
 class TitlePlugin:
     """Emits the report title; must come first."""
 
-    @hookimpl(tryfirst=True)
+    @extension(tryfirst=True)
     def section(self, data: dict[str, int]) -> str:
         """Return the title line."""
         return "# Daily Sales Report"
@@ -45,7 +45,7 @@ class TitlePlugin:
 class BodyPlugin:
     """Emits the data rows."""
 
-    @hookimpl
+    @extension
     def section(self, data: dict[str, int]) -> str:
         """Return one line per data entry."""
         return "\n".join(f"- {label}: {value}" for label, value in data.items())
@@ -54,7 +54,7 @@ class BodyPlugin:
 class TotalPlugin:
     """Emits the total; must come last."""
 
-    @hookimpl(trylast=True)
+    @extension(trylast=True)
     def section(self, data: dict[str, int]) -> str:
         """Return the total line."""
         return f"**Total: {sum(data.values())}**"
@@ -63,7 +63,7 @@ class TotalPlugin:
 class RenderPlugin:
     """Joins sections into the document body."""
 
-    @hookimpl
+    @extension
     def render(self, body: str) -> str:
         """Return the body unchanged (the wrapper frames it)."""
         return body
@@ -72,7 +72,7 @@ class RenderPlugin:
 class BannerWrapper:
     """Frames the rendered document with a banner."""
 
-    @hookimpl(wrapper=True)
+    @extension(wrapper=True)
     def render(self, body: str) -> Generator[None, str, str]:
         """Wrap the rendered body between two rules."""
         rendered = yield
@@ -83,7 +83,7 @@ class BannerWrapper:
 def build_plugin_manager() -> PluginManager:
     """Create a manager with the report plugins registered."""
     pm = PluginManager("report")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     # Registered out of order on purpose; tryfirst/trylast decide section order.
     pm.register(TotalPlugin(), name="total")
     pm.register(BodyPlugin(), name="body")

@@ -6,10 +6,11 @@ spec: ``pm.caller(spec)`` hands back a caller whose result is ``list[R]``
 
 Public API:
 
-- :class:`HookspecMarker` / :class:`HookimplMarker` - decorators that declare hook
-  specifications and implementations. ``@hookspec`` brands the spec by dispatch mode.
-- :class:`HookspecOpts` / :class:`HookimplOpts` - the option records the markers stamp.
-- :class:`PluginManager` - registers plugins and dispatches hook calls; ``caller(spec)``
+- :class:`ExtensionPoint` / :class:`Extension` - decorators that declare extension
+  points and the extensions that fulfil them. ``@extension_point`` brands the
+  declaration by dispatch mode.
+- :class:`ExtensionPointOpts` / :class:`ExtensionOpts` - the option records the markers stamp.
+- :class:`PluginManager` - registers plugins and dispatches calls; ``caller(spec)``
   returns a typed caller.
 - :class:`CollectingSpec` / :class:`FirstResultSpec` / :class:`PipelineSpec` - branded
   spec types, and :class:`CollectingCaller` / :class:`FirstResultCaller` /
@@ -40,12 +41,12 @@ from pluginkit.manager import (
 )
 from pluginkit.markers import (
     CollectingSpec,
+    Extension,
+    ExtensionOpts,
+    ExtensionPoint,
+    ExtensionPointOpts,
     FirstResultSpec,
     HistoricSpec,
-    HookimplMarker,
-    HookimplOpts,
-    HookspecMarker,
-    HookspecOpts,
     PipelineSpec,
 )
 
@@ -62,6 +63,10 @@ __all__ = [
     "AsyncPluginManager",
     "CollectingCaller",
     "CollectingSpec",
+    "Extension",
+    "ExtensionOpts",
+    "ExtensionPoint",
+    "ExtensionPointOpts",
     "FirstResultCaller",
     "FirstResultSpec",
     "HistoricCaller",
@@ -69,10 +74,6 @@ __all__ = [
     "HookCaller",
     "HookImpl",
     "HookRelay",
-    "HookimplMarker",
-    "HookimplOpts",
-    "HookspecMarker",
-    "HookspecOpts",
     "PipelineCaller",
     "PipelineSpec",
     "PluginManager",

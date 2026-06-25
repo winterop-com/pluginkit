@@ -20,7 +20,7 @@ Validation covers:
 
 | Problem | Result |
 | --- | --- |
-| implements a hook that has no spec | `PluginValidationError` (unless `optionalhook`) |
+| implements a hook that has no spec | `PluginValidationError` (unless `optional`) |
 | declares an argument the spec lacks | `PluginValidationError` |
 | duplicate plugin name | `ValueError` |
 | same plugin object registered twice | `ValueError` |
@@ -28,7 +28,7 @@ Validation covers:
 ## Removal and blocking
 
 ```python
-pm.unregister("acme")        # remove it and all its hook implementations
+pm.unregister("acme")        # remove it and all its extensions
 pm.set_blocked("acme")       # remove it AND refuse to register it again
 pm.is_blocked("acme")        # True
 ```
@@ -64,7 +64,7 @@ registered ones.
 
 ## Threading model
 
-Registry mutations - `add_hookspecs`, `register`, `unregister`, `set_blocked` -
+Registry mutations - `add_extension_points`, `register`, `unregister`, `set_blocked` -
 are serialised by a re-entrant lock, so plugins can be loaded concurrently.
 
 Hook **calls** are deliberately not locked. Locking every dispatch would serialise

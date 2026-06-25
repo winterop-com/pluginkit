@@ -11,10 +11,10 @@ Run: python examples/validation_rules.py
 # mypy: disable-error-code="empty-body"
 # pyright: reportReturnType=false
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("rules")
-hookimpl = HookimplMarker("rules")
+extension_point = ExtensionPoint("rules")
+extension = Extension("rules")
 
 Record = dict[str, str]
 
@@ -23,7 +23,7 @@ class Specs:
     """The validation host's contract."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def check(record: Record) -> str | None:
         """Return a problem description, or None if the record passes this rule."""
 
@@ -31,7 +31,7 @@ class Specs:
 class NameRequiredRule:
     """Requires a non-empty name."""
 
-    @hookimpl
+    @extension
     def check(self, record: Record) -> str | None:
         """Flag a missing or empty name."""
         return None if record.get("name") else "name is required"
@@ -40,7 +40,7 @@ class NameRequiredRule:
 class EmailFormatRule:
     """Requires a plausible email address."""
 
-    @hookimpl
+    @extension
     def check(self, record: Record) -> str | None:
         """Flag an email without an '@'."""
         email = record.get("email", "")
@@ -50,7 +50,7 @@ class EmailFormatRule:
 def build_plugin_manager() -> PluginManager:
     """Create a manager with the standard rules registered."""
     pm = PluginManager("rules")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     pm.register(NameRequiredRule(), name="name-required")
     pm.register(EmailFormatRule(), name="email-format")
     return pm

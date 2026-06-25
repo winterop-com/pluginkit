@@ -12,17 +12,17 @@ Run: python examples/text_pipeline.py
 # mypy: disable-error-code="empty-body"
 # pyright: reportReturnType=false
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("textkit")
-hookimpl = HookimplMarker("textkit")
+extension_point = ExtensionPoint("textkit")
+extension = Extension("textkit")
 
 
 class Specs:
     """The text host's contract."""
 
     @staticmethod
-    @hookspec(pipeline=True)
+    @extension_point(pipeline=True)
     def transform(text: str) -> str:
         """Transform the running text and return the next value."""
 
@@ -30,7 +30,7 @@ class Specs:
 class StripStage:
     """Trims surrounding whitespace; runs first."""
 
-    @hookimpl(tryfirst=True)
+    @extension(tryfirst=True)
     def transform(self, text: str) -> str:
         """Strip the text."""
         return text.strip()
@@ -39,7 +39,7 @@ class StripStage:
 class CollapseSpacesStage:
     """Collapses runs of internal whitespace."""
 
-    @hookimpl
+    @extension
     def transform(self, text: str) -> str:
         """Collapse whitespace to single spaces."""
         return " ".join(text.split())
@@ -48,7 +48,7 @@ class CollapseSpacesStage:
 class TitleCaseStage:
     """Title-cases the text."""
 
-    @hookimpl
+    @extension
     def transform(self, text: str) -> str:
         """Title-case the text."""
         return text.title()
@@ -57,7 +57,7 @@ class TitleCaseStage:
 class ExclaimStage:
     """Adds emphasis; runs last."""
 
-    @hookimpl(trylast=True)
+    @extension(trylast=True)
     def transform(self, text: str) -> str:
         """Append an exclamation mark unless one is already there."""
         return text if text.endswith("!") else f"{text}!"
@@ -66,7 +66,7 @@ class ExclaimStage:
 def build_plugin_manager() -> PluginManager:
     """Create a manager with the pipeline stages registered out of order."""
     pm = PluginManager("textkit")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     pm.register(ExclaimStage(), name="exclaim")
     pm.register(TitleCaseStage(), name="title")
     pm.register(StripStage(), name="strip")

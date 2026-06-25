@@ -51,7 +51,7 @@ enough in practice; performance is not a reason to pick one over the other.
   tracing, `subset_hook_caller`, and other advanced relay manipulation.
 
 pluginkit shares the core surface otherwise: collecting and `firstresult` specs,
-`tryfirst`/`trylast`, `optionalhook`, `specname`, generator wrappers with exception
+`tryfirst`/`trylast`, `optional`, `target`, generator wrappers with exception
 safety, historic hooks, `call_extra`, `unregister`/blocking/lookup, registration- and
 call-time validation, and entry-point discovery.
 

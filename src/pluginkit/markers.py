@@ -1,15 +1,16 @@
-"""Decorator markers that tag functions as hook specs or hook implementations.
+"""Decorators that declare extension points and the extensions that fulfil them.
 
 A marker stamps a small frozen dataclass of options onto the decorated function
-under a project-namespaced attribute, so the manager can later recognise specs and
-impls by introspection.
+under a project-namespaced attribute, so the manager can later recognise extension
+points and extensions by introspection.
 
-The `@hookspec` decorator is **typed by dispatch mode**: it returns a branded spec
-type (`CollectingSpec` / `FirstResultSpec` / `PipelineSpec`) that carries the impl
-signature (`P`) and per-impl return type (`R`). `PluginManager.caller(spec)` reads
-that brand to hand back a caller whose result type is exactly right for the mode -
-`list[R]`, `R | None`, or `R`. The brand classes are type-level only; they are never
-instantiated (a spec is a declaration, not a callable you invoke directly).
+`@extension_point` is **typed by dispatch mode**: it returns a branded spec type
+(`CollectingSpec` / `FirstResultSpec` / `PipelineSpec` / `HistoricSpec`) that carries
+the call signature (`P`) and per-extension return type (`R`). `PluginManager.caller`
+reads that brand to hand back a caller whose result type is exactly right for the
+mode - `list[R]`, `R | None`, or `R`. The brand classes are type-level only; they are
+never instantiated (an extension point is a declaration, not a callable you invoke
+directly).
 """
 
 from collections.abc import Callable
@@ -18,8 +19,8 @@ from typing import Any, Literal, overload
 
 
 @dataclass(frozen=True, slots=True)
-class HookspecOpts:
-    """Options attached to a hook specification."""
+class ExtensionPointOpts:
+    """Options attached to an extension point."""
 
     firstresult: bool = False
     historic: bool = False
@@ -27,55 +28,55 @@ class HookspecOpts:
 
 
 @dataclass(frozen=True, slots=True)
-class HookimplOpts:
-    """Options attached to a hook implementation."""
+class ExtensionOpts:
+    """Options attached to an extension."""
 
     tryfirst: bool = False
     trylast: bool = False
     wrapper: bool = False
-    optionalhook: bool = False
-    specname: str | None = None
+    optional: bool = False
+    target: str | None = None
 
 
 class CollectingSpec[**P, R]:
-    """A collecting hook spec: a call collects each impl's `R` into `list[R]`."""
+    """A collecting extension point: a call collects each extension's `R` into `list[R]`."""
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
-        """Specs are declarations; obtain a callable via PluginManager.caller(spec)."""
-        raise NotImplementedError("a spec is a declaration; call it via PluginManager.caller(spec)")
+        """Declarations are called via PluginManager.caller(extension_point)."""
+        raise NotImplementedError("an extension point is a declaration; call it via PluginManager.caller(...)")
 
 
 class FirstResultSpec[**P, R]:
-    """A firstresult hook spec: a call returns the first non-None `R`, or `None`."""
+    """A firstresult extension point: a call returns the first non-None `R`, or `None`."""
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
-        """Specs are declarations; obtain a callable via PluginManager.caller(spec)."""
-        raise NotImplementedError("a spec is a declaration; call it via PluginManager.caller(spec)")
+        """Declarations are called via PluginManager.caller(extension_point)."""
+        raise NotImplementedError("an extension point is a declaration; call it via PluginManager.caller(...)")
 
 
 class PipelineSpec[**P, R]:
-    """A pipeline hook spec: a call threads `R` through the impls and returns it."""
+    """A pipeline extension point: a call threads `R` through the extensions and returns it."""
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
-        """Specs are declarations; obtain a callable via PluginManager.caller(spec)."""
-        raise NotImplementedError("a spec is a declaration; call it via PluginManager.caller(spec)")
+        """Declarations are called via PluginManager.caller(extension_point)."""
+        raise NotImplementedError("an extension point is a declaration; call it via PluginManager.caller(...)")
 
 
 class HistoricSpec[**P, R]:
-    """A historic hook spec: replayed to late plugins, driven via `call_historic`."""
+    """A historic extension point: replayed to late plugins, driven via `call_historic`."""
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
-        """Specs are declarations; obtain a callable via PluginManager.caller(spec)."""
-        raise NotImplementedError("a spec is a declaration; call it via PluginManager.caller(spec)")
+        """Declarations are called via PluginManager.caller(extension_point)."""
+        raise NotImplementedError("an extension point is a declaration; call it via PluginManager.caller(...)")
 
 
-class HookspecMarker:
-    """Creates the @hookspec decorator bound to a project name."""
+class ExtensionPoint:
+    """Creates the @extension_point decorator bound to a project name."""
 
     def __init__(self, project_name: str) -> None:
         """Bind the marker to a project name used for the stamped attribute."""
         self.project_name = project_name
-        self.attribute = f"{project_name}_spec"
+        self.attribute = f"{project_name}_extension_point"
 
     @overload
     def __call__[**P, R](self, function: Callable[P, R]) -> CollectingSpec[P, R]: ...
@@ -103,22 +104,24 @@ class HookspecMarker:
         historic: bool = False,
         pipeline: bool = False,
     ) -> Any:
-        """Stamp HookspecOpts onto the function; supports bare and called forms."""
+        """Stamp ExtensionPointOpts onto the function; supports bare and called forms."""
 
         def mark(func: Callable[..., Any]) -> Callable[..., Any]:
-            setattr(func, self.attribute, HookspecOpts(firstresult=firstresult, historic=historic, pipeline=pipeline))
+            setattr(
+                func, self.attribute, ExtensionPointOpts(firstresult=firstresult, historic=historic, pipeline=pipeline)
+            )
             return func
 
         return mark(function) if function is not None else mark
 
 
-class HookimplMarker:
-    """Creates the @hookimpl decorator bound to a project name."""
+class Extension:
+    """Creates the @extension decorator bound to a project name."""
 
     def __init__(self, project_name: str) -> None:
         """Bind the marker to a project name used for the stamped attribute."""
         self.project_name = project_name
-        self.attribute = f"{project_name}_impl"
+        self.attribute = f"{project_name}_extension"
 
     @overload
     def __call__[F: Callable[..., Any]](self, function: F) -> F: ...
@@ -130,8 +133,8 @@ class HookimplMarker:
         tryfirst: bool = ...,
         trylast: bool = ...,
         wrapper: bool = ...,
-        optionalhook: bool = ...,
-        specname: str | None = ...,
+        optional: bool = ...,
+        target: str | None = ...,
     ) -> Callable[[F], F]: ...
     def __call__[F: Callable[..., Any]](
         self,
@@ -140,21 +143,21 @@ class HookimplMarker:
         tryfirst: bool = False,
         trylast: bool = False,
         wrapper: bool = False,
-        optionalhook: bool = False,
-        specname: str | None = None,
+        optional: bool = False,
+        target: str | None = None,
     ) -> F | Callable[[F], F]:
-        """Stamp HookimplOpts onto the function; supports bare and called forms."""
+        """Stamp ExtensionOpts onto the function; supports bare and called forms."""
 
         def mark(func: F) -> F:
             setattr(
                 func,
                 self.attribute,
-                HookimplOpts(
+                ExtensionOpts(
                     tryfirst=tryfirst,
                     trylast=trylast,
                     wrapper=wrapper,
-                    optionalhook=optionalhook,
-                    specname=specname,
+                    optional=optional,
+                    target=target,
                 ),
             )
             return func

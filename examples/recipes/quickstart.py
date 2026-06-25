@@ -6,17 +6,17 @@ Run: python examples/quickstart.py
 # mypy: disable-error-code="empty-body"
 # pyright: reportReturnType=false
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("greeter")
-hookimpl = HookimplMarker("greeter")
+extension_point = ExtensionPoint("greeter")
+extension = Extension("greeter")
 
 
 class Specs:
     """The contract this tiny app exposes to plugins."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def greeting(name: str) -> str:
         """Return a greeting for the given name."""
 
@@ -24,7 +24,7 @@ class Specs:
 class FormalPlugin:
     """Greets formally."""
 
-    @hookimpl
+    @extension
     def greeting(self, name: str) -> str:
         """Return a formal greeting."""
         return f"Good day, {name}."
@@ -33,7 +33,7 @@ class FormalPlugin:
 class CasualPlugin:
     """Greets casually."""
 
-    @hookimpl
+    @extension
     def greeting(self, name: str) -> str:
         """Return a casual greeting."""
         return f"hey {name}!"
@@ -42,7 +42,7 @@ class CasualPlugin:
 def run(name: str = "Ada") -> list[str]:
     """Register both plugins and collect their greetings."""
     pm = PluginManager("greeter")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     pm.register(FormalPlugin(), name="formal")
     pm.register(CasualPlugin(), name="casual")
     greetings = pm.caller(Specs.greeting)(name=name)

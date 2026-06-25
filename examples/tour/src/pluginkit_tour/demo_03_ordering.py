@@ -1,14 +1,14 @@
 """Demo 3: control call order with tryfirst / trylast regardless of registration."""
 
 from pluginkit import PluginManager
-from pluginkit_tour import hookspecs
-from pluginkit_tour.markers import PROJECT_NAME, hookimpl
+from pluginkit_tour import points
+from pluginkit_tour.markers import PROJECT_NAME, extension
 
 
 class WashPlugin:
     """Washing must happen before anything else."""
 
-    @hookimpl(tryfirst=True)
+    @extension(tryfirst=True)
     def prep_step(self, steps: list[str]) -> None:
         """Record the wash step first."""
         steps.append("wash produce")
@@ -17,7 +17,7 @@ class WashPlugin:
 class ChopPlugin:
     """Ordinary middle step with no ordering preference."""
 
-    @hookimpl
+    @extension
     def prep_step(self, steps: list[str]) -> None:
         """Record the chop step."""
         steps.append("chop fruit")
@@ -26,20 +26,20 @@ class ChopPlugin:
 class GarnishPlugin:
     """Garnishing must happen last."""
 
-    @hookimpl(trylast=True)
+    @extension(trylast=True)
     def prep_step(self, steps: list[str]) -> None:
         """Record the garnish step last."""
         steps.append("add garnish")
 
-    @hookimpl(optionalhook=True)
+    @extension(optional=True)
     def not_a_real_hook(self) -> None:
-        """Implements a hook the host never specified; optionalhook avoids an error."""
+        """Implements a hook the host never specified; optional avoids an error."""
 
 
 def build_plugin_manager() -> PluginManager:
     """Register plugins out of order to prove the markers decide the outcome."""
     pm = PluginManager(PROJECT_NAME)
-    pm.add_hookspecs(hookspecs)
+    pm.add_extension_points(points)
     pm.register(GarnishPlugin(), name="garnish")
     pm.register(WashPlugin(), name="wash")
     pm.register(ChopPlugin(), name="chop")
@@ -50,7 +50,7 @@ def prep_steps() -> list[str]:
     """Run every plugin's prep step and return the ordered list."""
     pm = build_plugin_manager()
     steps: list[str] = []
-    pm.caller(hookspecs.prep_step)(steps=steps)
+    pm.caller(points.prep_step)(steps=steps)
     return steps
 
 

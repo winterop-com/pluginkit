@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "An external plugin for the from-scratch kitchen host, its own uv project"
 readme = "README.md"
 requires-python = ">=3.13"
-# Depends on pluginkit for the shared @hookimpl marker bound to the host project.
+# Depends on pluginkit for the shared @extension marker bound to the host project.
 dependencies = ["pluginkit"]
 
 # Advertises itself under the host's "kitchen" entry-point group; the host

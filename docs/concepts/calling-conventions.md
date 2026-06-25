@@ -33,11 +33,11 @@ the subset matching its own signature, computed once at registration with
 `inspect.signature`.
 
 ```python
-@hookimpl
+@extension
 def add_ingredients(self):          # ignores base entirely
     return ["honey"]
 
-@hookimpl
+@extension
 def add_ingredients(self, base):    # receives base
     return [] if "berry" in base else ["blueberry"]
 ```

@@ -10,7 +10,7 @@ neither a collecting nor a `firstresult` hook expresses.
     In pluggy you would collect results and fold them yourself.
 
 ```python
-@hookspec(pipeline=True)
+@extension_point(pipeline=True)
 def transform(text: str) -> str:
     """Transform the running text and return the next value."""
 ```
@@ -20,12 +20,12 @@ Each implementation transforms and returns the value; ordering (`tryfirst` /
 
 ```python
 class StripStage:
-    @hookimpl(tryfirst=True)
+    @extension(tryfirst=True)
     def transform(self, text: str) -> str:
         return text.strip()
 
 class TitleCaseStage:
-    @hookimpl
+    @extension
     def transform(self, text: str) -> str:
         return text.title()
 ```
@@ -47,7 +47,7 @@ pm.caller(Specs.transform)(text="  hello   world  ")   # 'Hello World!'
 ## Constraints
 
 - `pipeline` cannot combine with `firstresult` or `historic` (rejected at
-  `add_hookspecs`).
+  `add_extension_points`).
 - A pipeline spec must declare at least one argument - the one that gets threaded.
 - Wrappers still wrap the whole pipeline and receive the final value.
 

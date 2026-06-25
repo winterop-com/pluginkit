@@ -7,14 +7,14 @@ and smoothie-extra is a separate uv project under plugins/.
 """
 
 from pluginkit import PluginManager
-from pluginkit_tour import hookspecs
+from pluginkit_tour import points
 from pluginkit_tour.markers import PROJECT_NAME
 
 
 def build_plugin_manager() -> PluginManager:
     """Create a manager and load every plugin advertised under the project name."""
     pm = PluginManager(PROJECT_NAME)
-    pm.add_hookspecs(hookspecs)
+    pm.add_extension_points(points)
     loaded = pm.load_entrypoints(PROJECT_NAME)
     print(f"Discovered {loaded} plugin(s) via entry points")
     return pm
@@ -24,7 +24,7 @@ def make_smoothie(pm: PluginManager | None = None) -> list[str]:
     """Collect ingredients contributed by entry-point plugins."""
     pm = pm or build_plugin_manager()
     base = ["water", "ice"]
-    contributed = pm.caller(hookspecs.add_ingredients)(base=base)
+    contributed = pm.caller(points.add_ingredients)(base=base)
     return base + [item for plugin_result in contributed for item in plugin_result]
 
 

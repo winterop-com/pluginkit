@@ -6,81 +6,81 @@ import pytest
 
 from pluginkit import (
     AsyncPluginManager,
-    HookimplMarker,
-    HookspecMarker,
+    Extension,
+    ExtensionPoint,
     PluginManager,
     PluginValidationError,
 )
 from pluginkit.manager import HookCaller, HookImpl
-from pluginkit.markers import HookimplOpts, HookspecOpts
+from pluginkit.markers import ExtensionOpts, ExtensionPointOpts
 
 
-def _project(name: str) -> tuple[HookspecMarker, HookimplMarker]:
-    return HookspecMarker(name), HookimplMarker(name)
+def _project(name: str) -> tuple[ExtensionPoint, Extension]:
+    return ExtensionPoint(name), Extension(name)
 
 
 def _manager_with_specs(specs: object, project: str = "demo") -> PluginManager:
     pm = PluginManager(project)
-    pm.add_hookspecs(specs)
+    pm.add_extension_points(specs)
     return pm
 
 
 def test_marker_supports_bare_and_called_forms():
-    hookimpl = HookimplMarker("demo")
+    extension = Extension("demo")
 
-    @hookimpl
+    @extension
     def bare() -> None: ...
 
-    @hookimpl(tryfirst=True, specname="other")
+    @extension(tryfirst=True, target="other")
     def called() -> None: ...
 
-    assert getattr(bare, "demo_impl") == HookimplOpts()
-    assert getattr(called, "demo_impl") == HookimplOpts(tryfirst=True, specname="other")
+    assert getattr(bare, "demo_extension") == ExtensionOpts()
+    assert getattr(called, "demo_extension") == ExtensionOpts(tryfirst=True, target="other")
 
 
 def test_impl_only_receives_declared_kwargs():
-    impl = HookImpl.from_function("p", lambda base: base, HookimplOpts())
+    impl = HookImpl.from_function("p", lambda base: base, ExtensionOpts())
     # Extra kwargs (size) are filtered out; only declared ones reach the function.
     assert impl.call({"base": ["x"], "size": "large"}) == ["x"]
 
 
 def test_collecting_hook_drops_none_results():
-    caller = HookCaller("h", HookspecOpts(), argnames=frozenset())
-    caller.add_impl(HookImpl.from_function("a", lambda: "kept", HookimplOpts()))
-    caller.add_impl(HookImpl.from_function("b", lambda: None, HookimplOpts()))
+    caller = HookCaller("h", ExtensionPointOpts(), argnames=frozenset())
+    caller.add_impl(HookImpl.from_function("a", lambda: "kept", ExtensionOpts()))
+    caller.add_impl(HookImpl.from_function("b", lambda: None, ExtensionOpts()))
     assert caller() == ["kept"]
 
 
 def test_unknown_hook_registration_raises():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def known() -> None: ...
 
     pm = _manager_with_specs(Specs)
 
     class Bad:
-        @hookimpl
+        @extension
         def unknown(self) -> None: ...
 
-    with pytest.raises(PluginValidationError, match="unknown hook"):
+    with pytest.raises(PluginValidationError, match="unknown extension point"):
         pm.register(Bad())
 
 
-def test_optionalhook_tolerates_unknown_hook():
-    hookspec, hookimpl = _project("demo")
+def test_optional_extension_tolerates_unknown_point():
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def known() -> None: ...
 
     pm = _manager_with_specs(Specs)
 
     class Optional:
-        @hookimpl(optionalhook=True)
+        @extension(optional=True)
         def not_specified(self) -> None: ...
 
     # Registration succeeds even though the host never specified the hook.
@@ -88,17 +88,17 @@ def test_optionalhook_tolerates_unknown_hook():
 
 
 def test_specname_binds_impl_to_a_differently_named_spec():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def greet(name: str) -> str: ...
 
     pm = _manager_with_specs(Specs)
 
     class Plugin:
-        @hookimpl(specname="greet")
+        @extension(target="greet")
         def my_greet(self, name: str) -> str:
             return f"hi {name}"
 
@@ -107,17 +107,17 @@ def test_specname_binds_impl_to_a_differently_named_spec():
 
 
 def test_impl_with_unknown_argument_is_rejected():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def greet(name: str) -> str: ...
 
     pm = _manager_with_specs(Specs)
 
     class Typo:
-        @hookimpl
+        @extension
         def greet(self, nam: str) -> str:  # misspelled argument
             return nam
 
@@ -136,17 +136,17 @@ def test_duplicate_name_and_object_registration_raise():
 
 
 def test_unregister_removes_impls():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def add(base: list[str]) -> list[str]: ...
 
     pm = _manager_with_specs(Specs)
 
     class Plugin:
-        @hookimpl
+        @extension
         def add(self, base: list[str]) -> list[str]:
             return ["x"]
 
@@ -177,23 +177,23 @@ def test_lookup_helpers():
 
 
 def test_wrapper_cleanup_runs_when_inner_impl_raises():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
     closed: list[str] = []
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def work() -> str: ...
 
     pm = _manager_with_specs(Specs)
 
     class Worker:
-        @hookimpl
+        @extension
         def work(self) -> str:
             raise RuntimeError("boom")
 
     class Wrapper:
-        @hookimpl(wrapper=True)
+        @extension(wrapper=True)
         def work(self):
             try:
                 yield
@@ -210,22 +210,22 @@ def test_wrapper_cleanup_runs_when_inner_impl_raises():
 
 
 def test_wrapper_can_suppress_inner_exception():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec(firstresult=True)
+        @extension_point(firstresult=True)
         def work() -> str: ...
 
     pm = _manager_with_specs(Specs)
 
     class Worker:
-        @hookimpl
+        @extension
         def work(self) -> str:
             raise RuntimeError("boom")
 
     class Recover:
-        @hookimpl(wrapper=True)
+        @extension(wrapper=True)
         def work(self):
             try:
                 return (yield)
@@ -238,11 +238,11 @@ def test_wrapper_can_suppress_inner_exception():
 
 
 def test_call_time_argument_validation():
-    hookspec, _ = _project("demo")
+    extension_point, _ = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def greet(name: str) -> str: ...
 
     pm = _manager_with_specs(Specs)
@@ -253,17 +253,17 @@ def test_call_time_argument_validation():
 
 
 def test_unregister_by_object():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def add(base: list[str]) -> list[str]: ...
 
     pm = _manager_with_specs(Specs)
 
     class Plugin:
-        @hookimpl
+        @extension
         def add(self, base: list[str]) -> list[str]:
             return ["x"]
 
@@ -275,17 +275,17 @@ def test_unregister_by_object():
 
 
 def test_wrapper_on_historic_hook_is_rejected():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec(historic=True)
+        @extension_point(historic=True)
         def started(name: str) -> None: ...
 
     pm = _manager_with_specs(Specs)
 
     class Bad:
-        @hookimpl(wrapper=True)
+        @extension(wrapper=True)
         def started(self, name: str):
             yield
 
@@ -294,17 +294,17 @@ def test_wrapper_on_historic_hook_is_rejected():
 
 
 def test_call_extra_runs_unregistered_impls_for_one_call():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def add(base: list[str]) -> list[str]: ...
 
     pm = _manager_with_specs(Specs)
 
     class Plugin:
-        @hookimpl
+        @extension
         def add(self, base: list[str]) -> list[str]:
             return ["registered"]
 
@@ -326,17 +326,17 @@ def test_call_extra_runs_unregistered_impls_for_one_call():
 
 
 def test_get_hookcallers_reports_a_plugins_hooks():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def add(base: list[str]) -> list[str]: ...
 
     pm = _manager_with_specs(Specs)
 
     class Plugin:
-        @hookimpl
+        @extension
         def add(self, base: list[str]) -> list[str]:
             return ["x"]
 
@@ -355,27 +355,27 @@ def test_repr_is_informative():
 
 
 def test_pipeline_threads_value_through_impls():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec(pipeline=True)
+        @extension_point(pipeline=True)
         def transform(value: int) -> int: ...
 
     pm = _manager_with_specs(Specs)
 
     class Doubler:
-        @hookimpl(tryfirst=True)
+        @extension(tryfirst=True)
         def transform(self, value: int) -> int:
             return value * 2
 
     class AddTen:
-        @hookimpl
+        @extension
         def transform(self, value: int) -> int:
             return value + 10
 
     class NoOp:
-        @hookimpl
+        @extension
         def transform(self, value: int) -> int | None:
             return None  # passes the value through unchanged
 
@@ -387,50 +387,50 @@ def test_pipeline_threads_value_through_impls():
 
 
 def test_pipeline_cannot_combine_with_other_modes():
-    hookspec = HookspecMarker("demo")
+    extension_point = ExtensionPoint("demo")
 
     class Specs:
         @staticmethod
-        @hookspec(pipeline=True, firstresult=True)  # type: ignore[call-overload]  # invalid combo is the point
+        @extension_point(pipeline=True, firstresult=True)  # type: ignore[call-overload]  # invalid combo is the point
         def bad(value: int) -> int: ...
 
     pm = PluginManager("demo")
     with pytest.raises(ValueError, match="cannot combine"):
-        pm.add_hookspecs(Specs)
+        pm.add_extension_points(Specs)
 
 
 def test_pipeline_requires_an_argument():
-    hookspec = HookspecMarker("demo")
+    extension_point = ExtensionPoint("demo")
 
     class Specs:
         @staticmethod
-        @hookspec(pipeline=True)
+        @extension_point(pipeline=True)
         def bad() -> int: ...
 
     pm = PluginManager("demo")
     with pytest.raises(ValueError, match="must declare at least one argument"):
-        pm.add_hookspecs(Specs)
+        pm.add_extension_points(Specs)
 
 
 def test_async_manager_collects_from_async_and_sync_impls():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def fetch(topic: str) -> str: ...
 
     pm = AsyncPluginManager("demo")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
 
     class AsyncSource:
-        @hookimpl
+        @extension
         async def fetch(self, topic: str) -> str:
             await asyncio.sleep(0)
             return f"async:{topic}"
 
     class SyncSource:
-        @hookimpl
+        @extension
         def fetch(self, topic: str) -> str:
             return f"sync:{topic}"
 
@@ -441,27 +441,27 @@ def test_async_manager_collects_from_async_and_sync_impls():
 
 
 def test_async_pipeline_and_firstresult():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
 
     class Specs:
         @staticmethod
-        @hookspec(pipeline=True)
+        @extension_point(pipeline=True)
         def step(value: int) -> int: ...
 
         @staticmethod
-        @hookspec(firstresult=True)
+        @extension_point(firstresult=True)
         def pick(size: str) -> str: ...
 
     pm = AsyncPluginManager("demo")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
 
     class Plugin:
-        @hookimpl
+        @extension
         async def step(self, value: int) -> int:
             await asyncio.sleep(0)
             return value + 1
 
-        @hookimpl
+        @extension
         async def pick(self, size: str) -> str:
             return f"chosen:{size}"
 
@@ -471,24 +471,24 @@ def test_async_pipeline_and_firstresult():
 
 
 def test_async_wrapper_teardown_runs_on_error():
-    hookspec, hookimpl = _project("demo")
+    extension_point, extension = _project("demo")
     closed: list[str] = []
 
     class Specs:
         @staticmethod
-        @hookspec
+        @extension_point
         def work() -> str: ...
 
     pm = AsyncPluginManager("demo")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
 
     class Worker:
-        @hookimpl
+        @extension
         async def work(self) -> str:
             raise RuntimeError("boom")
 
     class Wrapper:
-        @hookimpl(wrapper=True)
+        @extension(wrapper=True)
         async def work(self):
             try:
                 yield
@@ -504,13 +504,13 @@ def test_async_wrapper_teardown_runs_on_error():
 
 
 def test_historic_and_firstresult_combo_is_rejected():
-    hookspec = HookspecMarker("demo")
+    extension_point = ExtensionPoint("demo")
 
     class Specs:
         @staticmethod
-        @hookspec(historic=True, firstresult=True)
+        @extension_point(historic=True, firstresult=True)
         def bad() -> None: ...
 
     pm = PluginManager("demo")
     with pytest.raises(ValueError, match="cannot combine"):
-        pm.add_hookspecs(Specs)
+        pm.add_extension_points(Specs)

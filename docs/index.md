@@ -1,7 +1,7 @@
 # pluginkit
 
 A small, **strictly-typed**, generics-first plugin framework for **Python 3.13+**.
-Declare hook specifications, let plugins implement them, discover plugins via entry
+Declare extension points, let plugins implement them, discover plugins via entry
 points - and, unlike untyped hook systems, get the **right return type for every
 call**, derived from the spec and checked by your type checker.
 
@@ -25,17 +25,17 @@ library small enough to read end to end. See
 ## A 30-second tour
 
 ```python
-from pluginkit import HookspecMarker, HookimplMarker, PluginManager
+from pluginkit import ExtensionPoint, Extension, PluginManager
 
-hookspec = HookspecMarker("kitchen")
-hookimpl = HookimplMarker("kitchen")
+extension_point = ExtensionPoint("kitchen")
+extension = Extension("kitchen")
 
 
 class Specs:
     """The contract the host declares."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def add_ingredients(base: list[str]) -> list[str]:
         """Offer ingredients to add to the smoothie."""
 
@@ -43,14 +43,14 @@ class Specs:
 class BerryPlugin:
     """A plugin that fulfils the contract."""
 
-    @hookimpl
+    @extension
     def add_ingredients(self, base: list[str]) -> list[str]:
         """Contribute berries."""
         return ["blueberry", "strawberry"]
 
 
 pm = PluginManager("kitchen")
-pm.add_hookspecs(Specs)
+pm.add_extension_points(Specs)
 pm.register(BerryPlugin(), name="berry")
 
 ingredients = pm.caller(Specs.add_ingredients)(base=["banana"])  # typed list[list[str]]

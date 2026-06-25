@@ -11,27 +11,27 @@ Full runnable example:
 
 ```python
 from fastapi import APIRouter, FastAPI
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("webapp")
-hookimpl = HookimplMarker("webapp")
+extension_point = ExtensionPoint("webapp")
+extension = Extension("webapp")
 
 
 class Specs:
     @staticmethod
-    @hookspec
+    @extension_point
     def register_routes(router: APIRouter) -> None:
         """Attach endpoints to the shared router."""
 ```
 
 ## A plugin
 
-A plugin is any object whose method carries `@hookimpl`. It adds routes to the
+A plugin is any object whose method carries `@extension`. It adds routes to the
 router it is handed - it never imports or edits the host app:
 
 ```python
 class GreetingPlugin:
-    @hookimpl
+    @extension
     def register_routes(self, router: APIRouter) -> None:
         @router.get("/hello/{name}")
         def hello(name: str) -> dict[str, str]:
@@ -47,7 +47,7 @@ mounts it. Adding a feature later means registering one more plugin here (or, wi
 ```python
 def build_app(*plugins: object) -> FastAPI:
     pm = PluginManager("webapp")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     for plugin in plugins or (HealthPlugin(), GreetingPlugin()):
         pm.register(plugin)
     router = APIRouter()

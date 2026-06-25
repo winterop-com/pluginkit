@@ -20,8 +20,8 @@ from typing import Any, overload
 from pluginkit.manager import _UNSET, HookCaller, HookImpl, PluginManager
 from pluginkit.markers import (
     CollectingSpec,
+    ExtensionPointOpts,
     FirstResultSpec,
-    HookspecOpts,
     PipelineSpec,
 )
 
@@ -145,7 +145,7 @@ class AsyncPluginManager(PluginManager):
     """A PluginManager whose hooks are awaited; impls may be coroutine functions."""
 
     def _make_caller(
-        self, name: str, spec: HookspecOpts, params: tuple[str, ...], defaults: dict[str, Any]
+        self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any]
     ) -> HookCaller:
         """Build an AsyncHookCaller instead of the synchronous one."""
         return AsyncHookCaller(name=name, spec=spec, params=params, defaults=defaults)
@@ -159,7 +159,7 @@ class AsyncPluginManager(PluginManager):
     def caller(  # pyright: ignore[reportIncompatibleMethodOverride]  # async returns awaitable callers
         self, spec: object
     ) -> HookCaller:
-        """Return the typed async caller for a `@hookspec`-decorated spec function."""
+        """Return the typed async caller for an `@extension_point`-decorated function."""
         return self._caller(spec)
 
 

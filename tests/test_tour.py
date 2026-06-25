@@ -8,7 +8,7 @@ from pluginkit_tour import (
     demo_05_historic,
     demo_06_entrypoints,
 )
-from pluginkit_tour.hookspecs import IngredientProvider
+from pluginkit_tour.points import IngredientProvider
 
 
 def test_direct_collects_from_every_plugin():

@@ -12,10 +12,10 @@ Run: python examples/app_lifecycle.py
 # mypy: disable-error-code="empty-body"
 # pyright: reportReturnType=false
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("app")
-hookimpl = HookimplMarker("app")
+extension_point = ExtensionPoint("app")
+extension = Extension("app")
 
 Settings = dict[str, str]
 
@@ -24,12 +24,12 @@ class Specs:
     """The application host's contract."""
 
     @staticmethod
-    @hookspec(historic=True)
+    @extension_point(historic=True)
     def configure(settings: Settings) -> None:
         """Receive application settings once, at startup."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def health_check() -> str:
         """Report the plugin's health."""
 
@@ -41,12 +41,12 @@ class DatabasePlugin:
         """Start unconfigured."""
         self.dsn = ""
 
-    @hookimpl
+    @extension
     def configure(self, settings: Settings) -> None:
         """Capture the database DSN from settings."""
         self.dsn = settings.get("dsn", "")
 
-    @hookimpl
+    @extension
     def health_check(self) -> str:
         """Report whether a DSN was configured."""
         return f"database: {'ok' if self.dsn else 'unconfigured'}"
@@ -59,12 +59,12 @@ class CachePlugin:
         """Start unconfigured."""
         self.ttl = ""
 
-    @hookimpl
+    @extension
     def configure(self, settings: Settings) -> None:
         """Capture the cache TTL from settings."""
         self.ttl = settings.get("cache_ttl", "")
 
-    @hookimpl
+    @extension
     def health_check(self) -> str:
         """Report the configured TTL."""
         return f"cache: ttl={self.ttl or 'unset'}"
@@ -73,7 +73,7 @@ class CachePlugin:
 def run() -> list[str]:
     """Start the app, configure it, then load a late plugin and poll health."""
     pm = PluginManager("app")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
 
     database = DatabasePlugin()
     pm.register(database, name="database")

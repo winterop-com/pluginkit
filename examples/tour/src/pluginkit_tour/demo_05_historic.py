@@ -1,8 +1,8 @@
 """Demo 5: historic hooks replay past calls to plugins registered later."""
 
 from pluginkit import PluginManager
-from pluginkit_tour import hookspecs
-from pluginkit_tour.markers import PROJECT_NAME, hookimpl
+from pluginkit_tour import points
+from pluginkit_tour.markers import PROJECT_NAME, extension
 
 
 class EarlyStaffPlugin:
@@ -12,7 +12,7 @@ class EarlyStaffPlugin:
         """Start with no greeting."""
         self.greeting = ""
 
-    @hookimpl
+    @extension
     def kitchen_opened(self, name: str) -> str:
         """React to the opening announcement."""
         self.greeting = f"Early staff ready at {name}"
@@ -26,7 +26,7 @@ class LateStaffPlugin:
         """Start with no greeting."""
         self.greeting = ""
 
-    @hookimpl
+    @extension
     def kitchen_opened(self, name: str) -> str:
         """React to the replayed opening announcement."""
         self.greeting = f"Late staff caught up at {name}"
@@ -36,16 +36,14 @@ class LateStaffPlugin:
 def run() -> tuple[EarlyStaffPlugin, LateStaffPlugin, list[str]]:
     """Open the kitchen, then register a late plugin and show it still reacts."""
     pm = PluginManager(PROJECT_NAME)
-    pm.add_hookspecs(hookspecs)
+    pm.add_extension_points(points)
 
     callback_log: list[str] = []
     early = EarlyStaffPlugin()
     pm.register(early, name="early")
 
     # Fire the historic event. Only "early" is registered right now.
-    pm.caller(hookspecs.kitchen_opened).call_historic(
-        kwargs={"name": "Main Street"}, result_callback=callback_log.append
-    )
+    pm.caller(points.kitchen_opened).call_historic(kwargs={"name": "Main Street"}, result_callback=callback_log.append)
 
     # Register a plugin AFTER the event -- the caller replays the call for it.
     late = LateStaffPlugin()

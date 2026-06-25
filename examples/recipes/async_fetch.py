@@ -14,17 +14,17 @@ Run: python examples/async_fetch.py
 import asyncio
 from collections.abc import AsyncGenerator
 
-from pluginkit import AsyncPluginManager, HookimplMarker, HookspecMarker
+from pluginkit import AsyncPluginManager, Extension, ExtensionPoint
 
-hookspec = HookspecMarker("feed")
-hookimpl = HookimplMarker("feed")
+extension_point = ExtensionPoint("feed")
+extension = Extension("feed")
 
 
 class Specs:
     """The aggregator's contract."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def fetch(topic: str) -> str:
         """Fetch a headline for the topic from one source."""
 
@@ -32,7 +32,7 @@ class Specs:
 class WeatherSource:
     """An async source with a little latency."""
 
-    @hookimpl
+    @extension
     async def fetch(self, topic: str) -> str:
         """Return a weather headline after a simulated await."""
         await asyncio.sleep(0.01)
@@ -42,7 +42,7 @@ class WeatherSource:
 class NewsSource:
     """Another async source."""
 
-    @hookimpl
+    @extension
     async def fetch(self, topic: str) -> str:
         """Return a news headline after a simulated await."""
         await asyncio.sleep(0.01)
@@ -52,7 +52,7 @@ class NewsSource:
 class StaticSource:
     """A plain (non-async) source; returning a value works too."""
 
-    @hookimpl
+    @extension
     def fetch(self, topic: str) -> str:
         """Return a static line without awaiting."""
         return f"static[{topic}]: cached"
@@ -61,7 +61,7 @@ class StaticSource:
 class TimingWrapper:
     """An observe-only async wrapper that announces the call."""
 
-    @hookimpl(wrapper=True)
+    @extension(wrapper=True)
     async def fetch(self, topic: str) -> AsyncGenerator[None, list[str]]:
         """Print before and after the awaited fetch; does not change the result."""
         print(f"  [async] fetching {topic!r}...")
@@ -74,7 +74,7 @@ class TimingWrapper:
 def build_plugin_manager() -> AsyncPluginManager:
     """Create an async manager with three sources and a timing wrapper."""
     pm = AsyncPluginManager("feed")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     pm.register(WeatherSource(), name="weather")
     pm.register(NewsSource(), name="news")
     pm.register(StaticSource(), name="static")

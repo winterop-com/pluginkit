@@ -11,17 +11,17 @@ Run: python examples/notification_router.py
 # mypy: disable-error-code="empty-body"
 # pyright: reportReturnType=false
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("notify")
-hookimpl = HookimplMarker("notify")
+extension_point = ExtensionPoint("notify")
+extension = Extension("notify")
 
 
 class Specs:
     """The notification host's contract."""
 
     @staticmethod
-    @hookspec(firstresult=True)
+    @extension_point(firstresult=True)
     def deliver(message: str, urgent: bool) -> str | None:
         """Deliver the message and return a receipt, or None to defer to others."""
 
@@ -29,7 +29,7 @@ class Specs:
 class SmsChannel:
     """Sends SMS, but only for urgent messages; tried first."""
 
-    @hookimpl(tryfirst=True)
+    @extension(tryfirst=True)
     def deliver(self, message: str, urgent: bool) -> str | None:
         """Handle only urgent messages."""
         return f"SMS sent: {message!r}" if urgent else None
@@ -38,7 +38,7 @@ class SmsChannel:
 class EmailChannel:
     """Sends email for anything."""
 
-    @hookimpl
+    @extension
     def deliver(self, message: str, urgent: bool) -> str | None:
         """Handle any message."""
         return f"Email sent: {message!r}"
@@ -47,7 +47,7 @@ class EmailChannel:
 class SlackChannel:
     """A fallback chat channel."""
 
-    @hookimpl(trylast=True)
+    @extension(trylast=True)
     def deliver(self, message: str, urgent: bool) -> str | None:
         """Handle any message, but only if nothing else did."""
         return f"Slack posted: {message!r}"
@@ -56,7 +56,7 @@ class SlackChannel:
 def build_plugin_manager() -> PluginManager:
     """Create a manager with all channels registered."""
     pm = PluginManager("notify")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     pm.register(SmsChannel(), name="sms")
     pm.register(EmailChannel(), name="email")
     pm.register(SlackChannel(), name="slack")

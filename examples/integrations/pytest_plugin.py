@@ -11,17 +11,17 @@ Run the demonstration test: pytest examples/integrations/pytest_plugin.py
 
 import pytest
 
-from pluginkit import HookimplMarker, HookspecMarker, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager
 
-hookspec = HookspecMarker("checks")
-hookimpl = HookimplMarker("checks")
+extension_point = ExtensionPoint("checks")
+extension = Extension("checks")
 
 
 class Specs:
     """The contract a check plugin implements."""
 
     @staticmethod
-    @hookspec
+    @extension_point
     def check(value: object) -> str | None:
         """Return an error message if value fails this check, else None."""
 
@@ -29,7 +29,7 @@ class Specs:
 class NonEmptyPlugin:
     """Rejects the empty string, list, and dict."""
 
-    @hookimpl
+    @extension
     def check(self, value: object) -> str | None:
         """Flag empty values."""
         return "value is empty" if value in ("", [], {}) else None
@@ -38,7 +38,7 @@ class NonEmptyPlugin:
 class NotNonePlugin:
     """Rejects None."""
 
-    @hookimpl
+    @extension
     def check(self, value: object) -> str | None:
         """Flag None."""
         return "value is None" if value is None else None
@@ -59,7 +59,7 @@ class Checker:
 def build_checker(*plugins: object) -> Checker:
     """Assemble a checker from the given plugins (or the defaults)."""
     pm = PluginManager("checks")
-    pm.add_hookspecs(Specs)
+    pm.add_extension_points(Specs)
     for plugin in plugins or (NonEmptyPlugin(), NotNonePlugin()):
         pm.register(plugin)
     return Checker(pm)

@@ -5,6 +5,20 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.3] - 2026-06-25
+
+### Fixed
+
+- Re-adding an already-registered extension point now raises `ValueError` instead of
+  silently replacing the caller and **dropping every implementation wired to it**.
+- Historic events are **snapshotted** at `call_historic` time, so mutating the caller's
+  dict afterwards no longer changes what plugins registered later replay.
+
+### Changed
+
+- Contributor docs corrected to Python 3.13 (they still said 3.11+ with a 3.11-3.13 CI
+  matrix).
+
 ## [0.4.2] - 2026-06-25
 
 ### Fixed

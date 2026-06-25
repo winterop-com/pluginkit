@@ -203,7 +203,9 @@ class HookCaller:
         if not self.spec.historic:
             raise TypeError(f"hook {self.name!r} is not historic")
         kwargs = self.check_arguments(kwargs)
-        self._history.append((kwargs, result_callback))
+        # Snapshot the event so a later mutation of the caller's dict can't change
+        # what plugins registered after this call replay.
+        self._history.append((dict(kwargs), result_callback))
         for outcome in self._collect(kwargs):
             if result_callback is not None:
                 result_callback(outcome)
@@ -411,6 +413,11 @@ class PluginManager:
                     for name, parameter in signature.parameters.items()
                     if parameter.default is not inspect.Parameter.empty
                 }
+                if self.hook._get_caller(member_name) is not None:
+                    raise ValueError(
+                        f"extension point {member_name!r} is already registered; "
+                        f"re-adding it would drop the implementations already wired to it"
+                    )
                 self._validate_spec(member_name, spec, params)
                 self.hook._add_caller(self._make_caller(member_name, spec, params, defaults))
 

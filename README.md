@@ -6,21 +6,22 @@
 [![Docs](https://img.shields.io/badge/docs-pages-blue.svg)](https://winterop-com.github.io/pluginkit/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-A small, **dependency-free** plugin framework for Python: declare hook
-specifications, let plugins implement them, and discover plugins via entry points.
-Supports sync and async dispatch, hook ordering, wrappers, pipeline (fold)
-dispatch, and historic hooks - in a few readable files.
+A small, **strictly-typed**, generics-first plugin framework for **Python 3.13+**.
+Declare hook specifications, let plugins implement them, discover plugins via entry
+points - and, unlike untyped hook systems, get the **right return type for every
+call**, derived from the spec and checked by your type checker.
 
-The library is three files under `src/pluginkit/` (`markers.py`, `manager.py`,
-`exceptions.py`), has **zero runtime dependencies** (standard library only), runs on
-**Python 3.11+**, and ships a `py.typed` marker.
+`pm.caller(spec)` hands back a caller whose result type matches the dispatch mode -
+`list[R]` for collecting, `R | None` for firstresult, `R` for pipeline - with no
+hand-annotations and no drift. Zero runtime dependencies, a `py.typed` marker, and a
+few readable files.
 
 ```bash
 pip install pluginkit   # or: uv add pluginkit
 ```
 
 ```python
-from pluginkit import HookspecMarker, HookimplMarker, PluginManager
+from pluginkit import HookimplMarker, HookspecMarker, PluginManager
 
 hookspec = HookspecMarker("greeter")
 hookimpl = HookimplMarker("greeter")
@@ -42,7 +43,9 @@ class Casual:
 pm = PluginManager("greeter")
 pm.add_hookspecs(Specs)
 pm.register(Casual(), name="casual")
-print(pm.hook.greeting(name="Ada"))   # ['hey Ada!']
+
+greetings = pm.caller(Specs.greeting)(name="Ada")   # typed list[str] - derived, not asserted
+print(greetings)                                     # ['hey Ada!']
 ```
 
 ## What it supports

@@ -5,7 +5,7 @@ from collections.abc import Iterator
 
 import pytest
 
-from pluginkit import Extension, ExtensionPoint, PluginManager
+from pluginkit import Extension, ExtensionPoint, PluginManager, PluginValidationError
 from pluginkit.aio import AsyncPluginManager
 
 
@@ -270,8 +270,31 @@ def test_positional_only_and_variadic_params_are_rejected():
         def hook(self, **kw: object) -> str:  # variadic keyword
             return ""
 
-    with pytest.raises(ValueError, match="variadic"):
+    # An invalid impl signature surfaces as PluginValidationError, like other register() errors
+    with pytest.raises(PluginValidationError, match="variadic"):
         pm.register(VarKwImpl())
+
+
+def test_add_extension_points_is_atomic_on_an_invalid_spec():
+    """A namespace with a valid then an invalid spec registers neither (no partial state)."""
+    extension_point = ExtensionPoint("atomic")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def aaa_ok(name: str) -> str: ...  # valid, scanned first (dir() is sorted)
+
+        @staticmethod
+        @extension_point
+        def zzz_bad(name: str, /) -> str: ...  # positional-only, rejected later
+
+    pm = PluginManager("atomic")
+    with pytest.raises(ValueError, match="positional-only"):
+        pm.add_extension_points(Specs)
+
+    # the earlier valid spec must not have leaked through
+    with pytest.raises(PluginValidationError, match="unknown extension point"):
+        pm.caller(Specs.aaa_ok)
 
 
 def test_keyword_only_spec_param_rejects_positional_call():
@@ -313,3 +336,24 @@ def test_async_manager_rejects_historic_extension_point():
     pm = AsyncPluginManager("asynchist")
     with pytest.raises(ValueError, match="historic"):
         pm.add_extension_points(Specs)
+
+
+def test_async_add_extension_points_is_atomic_on_historic():
+    """An async namespace with a valid then a historic spec registers neither."""
+    extension_point = ExtensionPoint("asyncatomic")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def aaa_ok(name: str) -> str: ...
+
+        @staticmethod
+        @extension_point(historic=True)
+        def zzz_hist(name: str) -> None: ...  # rejected async-side, scanned later
+
+    pm = AsyncPluginManager("asyncatomic")
+    with pytest.raises(ValueError, match="historic"):
+        pm.add_extension_points(Specs)
+
+    with pytest.raises(PluginValidationError, match="unknown extension point"):
+        pm.caller(Specs.aaa_ok)

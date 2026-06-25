@@ -1,6 +1,6 @@
 [project]
 name = "pluginkit"
-version = "0.4.4"
+version = "0.4.5"
 description = "A strictly-typed, generics-first plugin framework for Python 3.13: hooks with derived return types"
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]

@@ -5,6 +5,17 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.5] - 2026-06-25
+
+### Fixed
+
+- `add_extension_points` is now **atomic**: every caller is built and validated before
+  any is registered, so a namespace containing an invalid spec (or, on
+  `AsyncPluginManager`, a historic one) no longer leaves a partially-configured manager.
+- An invalid implementation signature now raises `PluginValidationError` from
+  `register()`, consistent with the unknown-extension-point and unknown-argument errors,
+  instead of a plain `ValueError`.
+
 ## [0.4.4] - 2026-06-25
 
 ### Fixed

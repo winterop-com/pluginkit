@@ -10,7 +10,7 @@ The library is a few small files under `src/pluginkit/` (`markers.py`, `manager.
 only), and ships a `py.typed` marker.
 
 ```bash
-pip install pluginkit
+uv add pluginkit   # or: pip install pluginkit
 ```
 
 ## What you get

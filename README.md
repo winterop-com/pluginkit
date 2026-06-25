@@ -17,7 +17,7 @@ hand-annotations and no drift. Zero runtime dependencies, a `py.typed` marker, a
 few readable files.
 
 ```bash
-pip install pluginkit   # or: uv add pluginkit
+uv add pluginkit   # or: pip install pluginkit
 ```
 
 ```python

@@ -6,7 +6,7 @@ command tree. The host owns one hook, `register_commands`, and each plugin attac
 its own commands to the root group.
 
 Full runnable example:
-[`examples/integrations/cli_app.py`](https://github.com/winterop-com/pluginkit/blob/main/examples/integrations/cli_app.py).
+[`examples/cookbook/cli_app.py`](https://github.com/winterop-com/pluginkit/blob/main/examples/cookbook/cli_app.py).
 
 ## The hook
 

@@ -6,7 +6,7 @@ contributed by plugins and runs them over a value; expose it through a fixture a
 other installed packages can add assertions without your suite importing them.
 
 Full runnable example:
-[`examples/integrations/pytest_plugin.py`](https://github.com/winterop-com/pluginkit/blob/main/examples/integrations/pytest_plugin.py).
+[`examples/cookbook/pytest_plugin.py`](https://github.com/winterop-com/pluginkit/blob/main/examples/cookbook/pytest_plugin.py).
 
 ## The hook and a plugin
 

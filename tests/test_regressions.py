@@ -357,3 +357,55 @@ def test_async_add_extension_points_is_atomic_on_historic():
 
     with pytest.raises(PluginValidationError, match="unknown extension point"):
         pm.caller(Specs.aaa_ok)
+
+
+def test_failed_historic_call_is_not_recorded():
+    """If a historic dispatch raises, the event is not recorded, so later plugins don't replay it."""
+    extension_point = ExtensionPoint("histfail")
+    extension = Extension("histfail")
+
+    class Specs:
+        @staticmethod
+        @extension_point(historic=True)
+        def opened(name: str) -> None: ...
+
+    class Boom:
+        @extension
+        def opened(self, name: str) -> None:
+            raise RuntimeError("boom")
+
+    pm = PluginManager("histfail")
+    pm.add_extension_points(Specs)
+    pm.register(Boom())
+
+    with pytest.raises(RuntimeError, match="boom"):
+        pm.caller(Specs.opened).call_historic({"name": "evt"})
+
+    seen: list[str] = []
+
+    class Late:
+        @extension
+        def opened(self, name: str) -> None:
+            seen.append(name)
+
+    pm.register(Late())
+    assert seen == []  # the failed event was never recorded, so nothing replays
+
+
+def test_call_extra_rejects_invalid_signature_with_typeerror():
+    """call_extra reports an invalid temporary impl signature as TypeError, like its other checks."""
+    extension_point = ExtensionPoint("extra")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def hook(name: str) -> str: ...
+
+    pm = PluginManager("extra")
+    pm.add_extension_points(Specs)
+
+    def bad(*args: object) -> str:  # variadic positional
+        return "x"
+
+    with pytest.raises(TypeError, match="variadic"):
+        pm.hook.hook.call_extra([bad], {"name": "a"})

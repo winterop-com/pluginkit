@@ -23,10 +23,16 @@ from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, field
 from importlib.metadata import entry_points
 from types import GeneratorType
-from typing import Any, Self
+from typing import Any, Self, overload
 
 from pluginkit.exceptions import PluginValidationError
-from pluginkit.markers import HookimplOpts, HookspecOpts
+from pluginkit.markers import (
+    CollectingSpec,
+    FirstResultSpec,
+    HookimplOpts,
+    HookspecOpts,
+    PipelineSpec,
+)
 
 # Sentinel distinguishing "no result yet" from a legitimate None result.
 _UNSET: Any = object()
@@ -274,6 +280,34 @@ class HookCaller:
         return f"<HookCaller {self.name!r} impls={len(self._impls)}>"
 
 
+# Typed views returned by PluginManager.caller(). The runtime object is always a
+# plain HookCaller; these subclasses are never instantiated - they exist only to
+# refine the static return type of a call per dispatch mode, deriving the impl
+# ParamSpec P and return R from the branded spec.
+class CollectingCaller[**P, R](HookCaller):
+    """A collecting hook's typed caller: a call returns `list[R]`."""
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> list[R]:
+        """Call the collecting hook, returning each impl's result as `list[R]`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is a HookCaller
+
+
+class FirstResultCaller[**P, R](HookCaller):
+    """A firstresult hook's typed caller: a call returns `R | None`."""
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R | None:
+        """Call the firstresult hook, returning the first non-None `R` or `None`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is a HookCaller
+
+
+class PipelineCaller[**P, R](HookCaller):
+    """A pipeline hook's typed caller: a call returns `R`."""
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+        """Call the pipeline hook, returning the threaded value `R`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is a HookCaller
+
+
 class HookRelay:
     """Attribute-style access to hook callers, e.g. pm.hook.add_ingredients(...)."""
 
@@ -329,6 +363,31 @@ class PluginManager:
     def _make_caller(self, name: str, spec: HookspecOpts, params: tuple[str, ...]) -> HookCaller:
         """Build the caller for a spec; overridden by AsyncPluginManager."""
         return HookCaller(name=name, spec=spec, params=params)
+
+    @overload
+    def caller[**P, R](self, spec: FirstResultSpec[P, R]) -> FirstResultCaller[P, R]: ...
+    @overload
+    def caller[**P, R](self, spec: PipelineSpec[P, R]) -> PipelineCaller[P, R]: ...
+    @overload
+    def caller[**P, R](self, spec: CollectingSpec[P, R]) -> CollectingCaller[P, R]: ...
+    def caller(self, spec: object) -> HookCaller:
+        """Return the typed caller for a `@hookspec`-decorated spec function.
+
+        The result is a plain `HookCaller`, but its static type carries the spec's
+        dispatch mode, so a call returns `list[R]` (collecting), `R | None`
+        (firstresult), or `R` (pipeline) - derived from the spec, not asserted.
+        """
+        return self._caller(spec)
+
+    def _caller(self, spec: object) -> HookCaller:
+        """Resolve a spec function to its registered caller (shared by subclasses)."""
+        name = getattr(spec, "__name__", None)
+        if not isinstance(name, str):
+            raise TypeError("caller() expects a @hookspec-decorated function")
+        found = self.hook._get_caller(name)
+        if found is None:
+            raise PluginValidationError(self.project_name, f"unknown hook spec {name!r}; call add_hookspecs() first")
+        return found
 
     @staticmethod
     def _validate_spec(name: str, spec: HookspecOpts, params: tuple[str, ...]) -> None:

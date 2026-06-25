@@ -15,10 +15,16 @@ a wrapper must transform the result.
 import inspect
 from collections.abc import Callable
 from types import AsyncGeneratorType
-from typing import Any
+from typing import Any, overload
 
 from pluginkit.manager import _UNSET, HookCaller, HookImpl, PluginManager
-from pluginkit.markers import HookimplOpts, HookspecOpts
+from pluginkit.markers import (
+    CollectingSpec,
+    FirstResultSpec,
+    HookimplOpts,
+    HookspecOpts,
+    PipelineSpec,
+)
 
 
 class AsyncHookCaller(HookCaller):
@@ -107,12 +113,50 @@ class AsyncHookCaller(HookCaller):
         return result
 
 
+# Async typed views returned by AsyncPluginManager.caller(); never instantiated
+# (the runtime object is an AsyncHookCaller). Awaiting a call yields the mode type.
+class AsyncCollectingCaller[**P, R](AsyncHookCaller):
+    """A collecting async hook's typed caller: `await` a call to get `list[R]`."""
+
+    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> list[R]:
+        """Await the collecting hook, returning each impl's result as `list[R]`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is an AsyncHookCaller
+
+
+class AsyncFirstResultCaller[**P, R](AsyncHookCaller):
+    """A firstresult async hook's typed caller: `await` a call to get `R | None`."""
+
+    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R | None:
+        """Await the firstresult hook, returning the first non-None `R` or `None`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is an AsyncHookCaller
+
+
+class AsyncPipelineCaller[**P, R](AsyncHookCaller):
+    """A pipeline async hook's typed caller: `await` a call to get `R`."""
+
+    async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+        """Await the pipeline hook, returning the threaded value `R`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is an AsyncHookCaller
+
+
 class AsyncPluginManager(PluginManager):
     """A PluginManager whose hooks are awaited; impls may be coroutine functions."""
 
     def _make_caller(self, name: str, spec: HookspecOpts, params: tuple[str, ...]) -> HookCaller:
         """Build an AsyncHookCaller instead of the synchronous one."""
         return AsyncHookCaller(name=name, spec=spec, params=params)
+
+    @overload  # type: ignore[override]  # async manager returns awaitable callers
+    def caller[**P, R](self, spec: FirstResultSpec[P, R]) -> AsyncFirstResultCaller[P, R]: ...
+    @overload
+    def caller[**P, R](self, spec: PipelineSpec[P, R]) -> AsyncPipelineCaller[P, R]: ...
+    @overload
+    def caller[**P, R](self, spec: CollectingSpec[P, R]) -> AsyncCollectingCaller[P, R]: ...
+    def caller(  # pyright: ignore[reportIncompatibleMethodOverride]  # async returns awaitable callers
+        self, spec: object
+    ) -> HookCaller:
+        """Return the typed async caller for a `@hookspec`-decorated spec function."""
+        return self._caller(spec)
 
 
 async def _maybe_await(value: Any) -> Any:

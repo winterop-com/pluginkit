@@ -391,7 +391,7 @@ def test_pipeline_cannot_combine_with_other_modes():
 
     class Specs:
         @staticmethod
-        @hookspec(pipeline=True, firstresult=True)
+        @hookspec(pipeline=True, firstresult=True)  # type: ignore[call-overload]  # invalid combo is the point
         def bad(value: int) -> int: ...
 
     pm = PluginManager("demo")

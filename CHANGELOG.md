@@ -5,6 +5,29 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.3.0] - 2026-06-25
+
+### Added
+
+- Typed hook calls: `PluginManager.caller(spec)` returns a caller whose result type
+  is derived from the spec's dispatch mode - `list[R]` (collecting), `R | None`
+  (firstresult), or `R` (pipeline) - checked by mypy and pyright, not asserted by hand.
+- `@hookspec` now brands the spec by mode (`CollectingSpec` / `FirstResultSpec` /
+  `PipelineSpec`); the matching typed callers (`CollectingCaller` / `FirstResultCaller`
+  / `PipelineCaller`, plus `Async*` variants) are exported.
+
+### Changed
+
+- Require **Python 3.13** (was 3.11+). The branded specs and typed callers use PEP 695
+  generics and ParamSpec; CI targets 3.13 only.
+- Repositioned as a strictly-typed, generics-first alternative to untyped hook systems
+  rather than a from-scratch pluggy explainer.
+
+### Fixed
+
+- `__version__` now derives from the installed package metadata, so it can no longer
+  drift from the packaged version (0.2.0 had shipped a stale `0.1.0` literal).
+
 ## [0.2.0] - 2026-06-24
 
 ### Added

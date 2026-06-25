@@ -1,18 +1,13 @@
 # pluginkit
 
-A small, **dependency-free** plugin framework for Python: declare hook
-specifications, let plugins implement them, and discover plugins via entry points.
-Sync and async dispatch, hook ordering, wrappers, pipeline (fold) dispatch, and
-historic hooks - in a few readable files.
+A small, **strictly-typed**, generics-first plugin framework for **Python 3.13+**.
+Declare hook specifications, let plugins implement them, discover plugins via entry
+points - and, unlike untyped hook systems, get the **right return type for every
+call**, derived from the spec and checked by your type checker.
 
-The entire library is three small files under `src/pluginkit/`:
-
-- **markers.py** - the `@hookspec` / `@hookimpl` decorators.
-- **manager.py** - the `PluginManager`, `HookRelay`, and `HookCaller`.
-- **exceptions.py** - `PluginValidationError`.
-
-It has **zero runtime dependencies** (standard library only), runs on Python 3.11+,
-and ships a `py.typed` marker.
+The library is a few small files under `src/pluginkit/` (`markers.py`, `manager.py`,
+`aio.py`, `exceptions.py`), has **zero runtime dependencies** (standard library
+only), and ships a `py.typed` marker.
 
 ```bash
 pip install pluginkit
@@ -20,10 +15,12 @@ pip install pluginkit
 
 ## What you get
 
-Every plugin concept - hook specs, implementations, ordering, wrappers, pipeline
-dispatch, historic replay, async, and entry-point discovery - in a strictly typed
+`pm.caller(spec)` returns a caller whose result type matches the dispatch mode -
+`list[R]` for collecting, `R | None` for firstresult, `R` for pipeline - so hook
+calls are checked, not asserted. Every plugin concept (specs, impls, ordering,
+wrappers, pipeline dispatch, historic replay, async, entry-point discovery) in a
 library small enough to read end to end. See
-[Differences from pluggy](production/vs-pluggy.md) if you are weighing the two.
+[pluginkit vs pluggy](production/vs-pluggy.md) if you are weighing the two.
 
 ## A 30-second tour
 
@@ -56,7 +53,8 @@ pm = PluginManager("kitchen")
 pm.add_hookspecs(Specs)
 pm.register(BerryPlugin(), name="berry")
 
-print(pm.hook.add_ingredients(base=["banana"]))  # [['blueberry', 'strawberry']]
+ingredients = pm.caller(Specs.add_ingredients)(base=["banana"])  # typed list[list[str]]
+print(ingredients)  # [['blueberry', 'strawberry']]
 ```
 
 ## Where to go next

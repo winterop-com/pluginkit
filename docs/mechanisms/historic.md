@@ -17,14 +17,15 @@ A historic hook is **not** called like a normal one. Use `call_historic`, passin
 the keyword arguments as a dict and an optional callback for each result:
 
 ```python
-pm.hook.kitchen_opened.call_historic(
+pm.caller(Specs.kitchen_opened).call_historic(
     kwargs={"name": "Main Street"},
     result_callback=log.append,
 )
 ```
 
-Calling a historic hook with the plain `pm.hook.kitchen_opened(...)` form raises a
-`TypeError`, and vice versa - the two calling styles are kept distinct on purpose.
+Calling a historic hook with the plain `pm.caller(Specs.kitchen_opened)(...)` form
+raises a `TypeError`, and vice versa - the two calling styles are kept distinct on
+purpose.
 
 ## Replay to late plugins
 
@@ -32,7 +33,7 @@ Any plugin registered after the call immediately receives it:
 
 ```python
 pm.register(early, name="early")
-pm.hook.kitchen_opened.call_historic(kwargs={"name": "Main Street"})
+pm.caller(Specs.kitchen_opened).call_historic(kwargs={"name": "Main Street"})
 pm.register(late, name="late")     # 'late' still runs kitchen_opened("Main Street")
 ```
 

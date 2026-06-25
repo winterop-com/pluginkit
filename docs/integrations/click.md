@@ -52,7 +52,7 @@ def build_cli(*plugins: object) -> click.Group:
     pm.add_hookspecs(Specs)
     for plugin in plugins or (GreetPlugin(), VersionPlugin()):
         pm.register(plugin)
-    pm.hook.register_commands(cli=cli)
+    pm.caller(Specs.register_commands)(cli=cli)
     return cli
 ```
 

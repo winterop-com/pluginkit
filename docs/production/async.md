@@ -30,7 +30,7 @@ pm = AsyncPluginManager("feed")
 pm.add_hookspecs(Specs)
 pm.register(WeatherSource(), name="weather")
 
-headlines = asyncio.run(pm.hook.fetch(topic="harbor"))
+headlines = asyncio.run(pm.caller(Specs.fetch)(topic="harbor"))
 ```
 
 ## Sync and async implementations mix

@@ -15,7 +15,7 @@ sequenceDiagram
     PM->>HC: create one caller per spec
     Host->>PM: register(plugin)
     PM->>HC: add validated HookImpls
-    Host->>PM: pm.hook.add_ingredients(base=...)
+    Host->>PM: pm.caller(Specs.add_ingredients)(base=...)
     PM->>HC: __call__(**kwargs)
     HC->>Impl: call each, filtering kwargs
     Impl-->>HC: results
@@ -80,8 +80,20 @@ Hook **calls** are deliberately not locked: locking every dispatch would seriali
 the whole application. Coordinate calls yourself if they can race with
 registration.
 
+## Calling a hook
+
+`pm.caller(spec)` is the typed entry point: it returns a caller whose result type is
+derived from the spec's dispatch mode (`list[R]` for collecting, `R | None` for
+firstresult, `R` for pipeline), checked by mypy and pyright.
+
+```python
+results = pm.caller(Specs.add_ingredients)(base=["banana"])   # typed list[list[str]]
+```
+
 ## The hook relay
 
-`pm.hook` is a `HookRelay`. Attribute access resolves to the `HookCaller` for that
-hook name via `__getattr__`, which is what makes `pm.hook.add_ingredients(...)`
-read so naturally. An unknown name raises `AttributeError`.
+`pm.hook` is a `HookRelay` - the untyped shorthand. Attribute access resolves to the
+`HookCaller` for that hook name via `__getattr__`, which is what makes
+`pm.hook.add_ingredients(...)` read so naturally; it returns `Any`. An unknown name
+raises `AttributeError`. `pm.caller(spec)` resolves to the same `HookCaller`, so the
+two share one manager - use `pm.caller` when you want the type checker's help.

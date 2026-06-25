@@ -1,25 +1,29 @@
 # Overview
 
 A plugin system lets a **host** application be extended by code it has never seen.
-pluginkit, like pluggy, does this with three moving parts.
+pluginkit is a strictly-typed plugin framework that does this with three moving
+parts.
 
 ```mermaid
 flowchart LR
     spec["@hookspec<br/>(the contract)"] --> pm["PluginManager"]
     impl["@hookimpl<br/>(a plugin)"] --> pm
-    pm --> call["pm.hook.name(...)<br/>(dispatch)"]
+    pm --> call["pm.caller(Specs.name)(...)<br/>(dispatch)"]
 ```
 
 ## 1. Hook specifications
 
 The host declares **what** can be extended by writing hook specifications -
-ordinary functions decorated with `@hookspec`. A spec is just a name and a
-signature; its body is never executed. It is the contract a plugin agrees to.
+functions decorated with `@hookspec`, conventionally grouped on a `Specs` class. A
+spec is just a name and a signature; its body is never executed. It is the contract
+a plugin agrees to.
 
 ```python
-@hookspec
-def add_ingredients(base: list[str]) -> list[str]:
-    """Offer ingredients to add to the smoothie."""
+class Specs:
+    @staticmethod
+    @hookspec
+    def add_ingredients(base: list[str]) -> list[str]:
+        """Offer ingredients to add to the smoothie."""
 ```
 
 ## 2. Hook implementations
@@ -39,14 +43,16 @@ class BerryPlugin:
 
 The [`PluginManager`](plugin-manager.md) ties them together. It learns the specs
 (`add_hookspecs`), accepts plugins (`register`, or `load_entrypoints` for external
-ones), and exposes each hook as a callable on `pm.hook`. Calling the hook invokes
-every registered implementation and collects the results.
+ones), and dispatches each hook. `pm.caller(spec)` is the typed entry point - its
+result type is derived from the spec - while `pm.hook.<name>` is the untyped
+shorthand. Calling the hook invokes every registered implementation and collects the
+results.
 
 ```python
 pm = PluginManager("kitchen")
-pm.add_hookspecs(specs_module)
+pm.add_hookspecs(Specs)
 pm.register(BerryPlugin())
-results = pm.hook.add_ingredients(base=["banana"])
+results = pm.caller(Specs.add_ingredients)(base=["banana"])
 ```
 
 ## The project name

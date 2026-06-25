@@ -41,7 +41,7 @@ Call the hook with the threaded argument by name; the result is the final value,
 not a list:
 
 ```python
-pm.hook.transform(text="  hello   world  ")   # 'Hello World!'
+pm.caller(Specs.transform)(text="  hello   world  ")   # 'Hello World!'
 ```
 
 ## Constraints

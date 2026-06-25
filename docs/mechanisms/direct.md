@@ -16,7 +16,7 @@ greens: IngredientProvider = GreensPlugin()
 pm.register(berry, name="berry")
 pm.register(greens, name="greens")
 
-contributed = pm.hook.add_ingredients(base=["banana", "milk"])
+contributed = pm.caller(Specs.add_ingredients)(base=["banana", "milk"])
 ```
 
 ## What it shows

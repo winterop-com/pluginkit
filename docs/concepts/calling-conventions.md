@@ -4,13 +4,27 @@ Once plugins are registered, calling a hook runs a small dispatch engine inside
 `HookCaller`. This page explains the rules that engine follows; each rule has a
 dedicated [mechanism page](../mechanisms/direct.md) with a runnable demo.
 
+## Typed calls: `pm.caller`
+
+`pm.caller(spec)` returns a caller whose result type is derived from the spec's
+dispatch mode and checked by mypy and pyright - no hand annotations:
+
+```python
+ingredients = pm.caller(Specs.add_ingredients)(base=["banana"])  # list[list[str]]
+cup = pm.caller(Specs.choose_cup)(size="small")                  # str | None
+```
+
+`pm.hook.<name>(...)` works too and is more concise, but it is untyped (returns
+`Any`). Use `pm.hook` for quick scripts and `pm.caller` when you want the type
+checker's help; both share one `PluginManager`, so you never need a manager per spec.
+
 ## Keyword-only calls
 
 Hooks are always called with keyword arguments:
 
 ```python
-pm.hook.add_ingredients(base=["banana"])   # good
-pm.hook.add_ingredients(["banana"])        # not how hooks are called
+pm.caller(Specs.add_ingredients)(base=["banana"])   # good
+pm.caller(Specs.add_ingredients)(["banana"])        # not how hooks are called
 ```
 
 This is what lets each implementation declare **only the arguments it cares
@@ -34,15 +48,15 @@ By default a hook is **collecting**: every implementation runs and the non-`None
 results are returned as a list.
 
 ```python
-pm.hook.add_ingredients(base=["banana"])
-# [['blueberry', 'strawberry'], ['spinach', 'kale']]
+pm.caller(Specs.add_ingredients)(base=["banana"])
+# [['blueberry', 'strawberry'], ['spinach', 'kale']]   # typed list[list[str]]
 ```
 
 A spec marked `firstresult` stops at the first implementation that returns a
-non-`None` value and returns that value directly - not a list:
+non-`None` value and returns that value directly - not a list (typed `R | None`):
 
 ```python
-pm.hook.choose_cup(size="small")   # '8oz paper cup'
+pm.caller(Specs.choose_cup)(size="small")   # '8oz paper cup'
 ```
 
 `None` results are skipped in both modes, so an implementation can abstain simply

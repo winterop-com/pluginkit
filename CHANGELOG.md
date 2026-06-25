@@ -5,6 +5,17 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.0] - 2026-06-25
+
+### Changed (breaking)
+
+- Renamed the decorators to self-describing names, dropping the pluggy-inherited
+  vocabulary: `HookspecMarker` -> `ExtensionPoint` (`@extension_point`) and
+  `HookimplMarker` -> `Extension` (`@extension`). The option records become
+  `ExtensionPointOpts` / `ExtensionOpts`, `PluginManager.add_hookspecs` becomes
+  `add_extension_points`, and the `@extension` options `optionalhook` / `specname`
+  become `optional` / `target`. No backward-compat aliases (a deliberate clean break).
+
 ## [0.3.1] - 2026-06-25
 
 ### Fixed

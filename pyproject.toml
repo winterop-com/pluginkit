@@ -1,6 +1,6 @@
 [project]
 name = "pluginkit"
-version = "0.3.1"
+version = "0.4.0"
 description = "A strictly-typed, generics-first plugin framework for Python 3.13: hooks with derived return types"
 readme = "README.md"
 authors = [{ name = "Morten Hansen", email = "morten@winterop.com" }]
@@ -101,7 +101,7 @@ disable_error_code = ["empty-body"]
 
 # Hook specs are intentionally empty (signature + docstring only).
 [[tool.mypy.overrides]]
-module = "pluginkit_tour.hookspecs"
+module = "pluginkit_tour.points"
 disable_error_code = ["empty-body"]
 
 [tool.pyright]

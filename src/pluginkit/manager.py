@@ -430,8 +430,13 @@ class PluginManager:
         self._lock = threading.RLock()
 
     def add_extension_points(self, namespace: object) -> None:
-        """Scan a module (or object) for extension points and create callers."""
+        """Scan a module (or object) for extension points and create callers.
+
+        Every caller is built and validated before any is registered, so a namespace
+        with an invalid spec leaves the manager unchanged rather than half-configured.
+        """
         with self._lock:
+            new_callers: list[HookCaller] = []
             for member_name in dir(namespace):
                 member = getattr(namespace, member_name)
                 spec = getattr(member, self._spec_attribute, None)
@@ -451,7 +456,9 @@ class PluginManager:
                         f"re-adding it would drop the implementations already wired to it"
                     )
                 self._validate_spec(member_name, spec, params)
-                self.hook._add_caller(self._make_caller(member_name, spec, params, defaults, arity))
+                new_callers.append(self._make_caller(member_name, spec, params, defaults, arity))
+            for caller in new_callers:
+                self.hook._add_caller(caller)
 
     def _make_caller(
         self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any], arity: int
@@ -633,7 +640,10 @@ class PluginManager:
                 raise PluginValidationError(plugin_name, f"implements unknown extension point {hook_name!r}")
             if opts.wrapper and caller.spec.historic:
                 raise PluginValidationError(plugin_name, f"historic hook {hook_name!r} cannot have a wrapper")
-            impl = HookImpl.from_function(plugin_name, member, opts)
+            try:
+                impl = HookImpl.from_function(plugin_name, member, opts)
+            except ValueError as exc:
+                raise PluginValidationError(plugin_name, str(exc)) from exc
             unknown = impl.accepts - caller.argnames
             if unknown:
                 raise PluginValidationError(

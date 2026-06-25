@@ -5,6 +5,15 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.1] - 2026-06-25
+
+### Changed
+
+- Documentation and examples reorganised: the "Integrations" section and
+  `examples/integrations/` are merged with `examples/recipes/` into a single
+  **Cookbook** (`examples/cookbook/`), since the FastAPI/Click/pytest examples are
+  illustrative examples, not shipped integrations. No library code changes.
+
 ## [0.4.0] - 2026-06-25
 
 ### Changed (breaking)

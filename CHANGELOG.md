@@ -5,6 +5,18 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.6] - 2026-06-25
+
+### Fixed
+
+- `call_historic` now dispatches to the current implementations **before** recording the
+  event, so when an implementation raises, the failed call is not added to the replay
+  history - a plugin registered later no longer replays an event whose original dispatch
+  failed.
+- `call_extra` reports an invalid temporary-implementation signature (`*args` / `**kwargs`)
+  as `TypeError`, consistent with its other call-time validation, instead of leaking a
+  `ValueError`.
+
 ## [0.4.5] - 2026-06-25
 
 ### Fixed

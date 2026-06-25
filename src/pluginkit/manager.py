@@ -183,7 +183,10 @@ class HookCaller:
         """Build one-off impls for call_extra, validating their args against the spec."""
         extra: list[HookImpl] = []
         for function in functions:
-            impl = HookImpl.from_function("<call_extra>", function, ExtensionOpts())
+            try:
+                impl = HookImpl.from_function("<call_extra>", function, ExtensionOpts())
+            except ValueError as exc:
+                raise TypeError(str(exc)) from exc
             unknown = impl.accepts - self.argnames
             if unknown:
                 raise TypeError(f"call_extra impl for {self.name!r} declares unknown argument(s) {sorted(unknown)}")
@@ -234,10 +237,13 @@ class HookCaller:
         if not self.spec.historic:
             raise TypeError(f"hook {self.name!r} is not historic")
         kwargs = self.check_arguments(kwargs)
-        # Snapshot the event so a later mutation of the caller's dict can't change
-        # what plugins registered after this call replay.
+        # Dispatch to the current impls first: if one raises, the call fails without
+        # recording the event, so a later plugin never replays a call that did not succeed.
+        outcomes = self._collect(kwargs)
+        # Record only after a successful dispatch, snapshotting the event so a later
+        # mutation of the caller's dict can't change what plugins replay.
         self._history.append((dict(kwargs), result_callback))
-        for outcome in self._collect(kwargs):
+        for outcome in outcomes:
             if result_callback is not None:
                 result_callback(outcome)
 

@@ -45,7 +45,7 @@ def run(name: str = "Ada") -> list[str]:
     pm.add_hookspecs(Specs)
     pm.register(FormalPlugin(), name="formal")
     pm.register(CasualPlugin(), name="casual")
-    greetings: list[str] = pm.hook.greeting(name=name)
+    greetings = pm.caller(Specs.greeting)(name=name)
     return greetings
 
 

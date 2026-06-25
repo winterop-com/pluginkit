@@ -56,7 +56,7 @@ def build_plugin_manager() -> PluginManager:
 def blend(contents: list[str]) -> str:
     """Run the wrapped blend hook and return the final decorated result."""
     pm = build_plugin_manager()
-    final: str = pm.hook.blend(contents=contents)
+    final = pm.caller(hookspecs.blend)(contents=contents) or ""
     return final
 
 

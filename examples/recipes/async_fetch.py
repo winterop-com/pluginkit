@@ -85,7 +85,7 @@ def build_plugin_manager() -> AsyncPluginManager:
 async def gather(topic: str) -> list[str]:
     """Await every source and return their collected headlines."""
     pm = build_plugin_manager()
-    headlines: list[str] = await pm.hook.fetch(topic=topic)
+    headlines = await pm.caller(Specs.fetch)(topic=topic)
     return headlines
 
 

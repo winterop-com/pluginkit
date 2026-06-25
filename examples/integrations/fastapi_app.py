@@ -4,7 +4,7 @@ The host owns one `register_routes` hook. Each plugin attaches its own endpoints
 to a shared router, and the host mounts the result - so features are added by
 registering a plugin, never by editing the app.
 
-Run: python examples/recipes/fastapi_app.py   (serves on http://127.0.0.1:8000)
+Run: python examples/integrations/fastapi_app.py   (serves on http://127.0.0.1:8000)
 """
 
 from fastapi import APIRouter, FastAPI
@@ -55,7 +55,7 @@ def build_app(*plugins: object) -> FastAPI:
     for plugin in plugins or (HealthPlugin(), GreetingPlugin()):
         pm.register(plugin)
     router = APIRouter()
-    pm.hook.register_routes(router=router)
+    pm.caller(Specs.register_routes)(router=router)
     app = FastAPI(title="pluginkit-powered API")
     app.include_router(router)
     return app

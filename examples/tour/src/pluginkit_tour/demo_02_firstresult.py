@@ -45,7 +45,8 @@ def build_plugin_manager() -> PluginManager:
 def choose_cup(size: str) -> str:
     """Return the single cup chosen for the requested size."""
     pm = build_plugin_manager()
-    cup: str = pm.hook.choose_cup(size=size)
+    cup = pm.caller(hookspecs.choose_cup)(size=size)
+    assert cup is not None  # the default plugin always answers
     return cup
 
 

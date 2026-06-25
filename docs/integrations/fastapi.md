@@ -51,7 +51,7 @@ def build_app(*plugins: object) -> FastAPI:
     for plugin in plugins or (HealthPlugin(), GreetingPlugin()):
         pm.register(plugin)
     router = APIRouter()
-    pm.hook.register_routes(router=router)
+    pm.caller(Specs.register_routes)(router=router)
     app = FastAPI()
     app.include_router(router)
     return app

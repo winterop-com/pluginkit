@@ -77,7 +77,7 @@ def build_plugin_manager() -> PluginManager:
 def run(text: str) -> str:
     """Push text through the full transformation pipeline."""
     pm = build_plugin_manager()
-    result: str = pm.hook.transform(text=text)
+    result = pm.caller(Specs.transform)(text=text)
     return result
 
 

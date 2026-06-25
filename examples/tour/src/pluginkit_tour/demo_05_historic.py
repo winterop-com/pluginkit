@@ -43,7 +43,9 @@ def run() -> tuple[EarlyStaffPlugin, LateStaffPlugin, list[str]]:
     pm.register(early, name="early")
 
     # Fire the historic event. Only "early" is registered right now.
-    pm.hook.kitchen_opened.call_historic(kwargs={"name": "Main Street"}, result_callback=callback_log.append)
+    pm.caller(hookspecs.kitchen_opened).call_historic(
+        kwargs={"name": "Main Street"}, result_callback=callback_log.append
+    )
 
     # Register a plugin AFTER the event -- the caller replays the call for it.
     late = LateStaffPlugin()

@@ -27,7 +27,7 @@ class Specs:
 
 
 class NonEmptyPlugin:
-    """Rejects empty containers and strings."""
+    """Rejects the empty string, list, and dict."""
 
     @hookimpl
     def check(self, value: object) -> str | None:
@@ -53,7 +53,7 @@ class Checker:
 
     def errors(self, value: object) -> list[str]:
         """Return the messages from checks that failed (empty == all passed)."""
-        return [message for message in self._pm.hook.check(value=value) if message]
+        return [message for message in self._pm.caller(Specs.check)(value=value) if message]
 
 
 def build_checker(*plugins: object) -> Checker:

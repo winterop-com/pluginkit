@@ -65,7 +65,7 @@ def build_plugin_manager() -> PluginManager:
 
 def route(pm: PluginManager, message: str, *, urgent: bool) -> str:
     """Return the receipt from the first channel that accepted the message."""
-    receipt: str = pm.hook.deliver(message=message, urgent=urgent)
+    receipt = pm.caller(Specs.deliver)(message=message, urgent=urgent) or ""
     return receipt
 
 

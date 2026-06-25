@@ -43,7 +43,7 @@ pm.plugin_names()            # ['acme', 'widget']
 pm.get_plugin("acme")        # the object, or None
 pm.get_name(plugin)          # 'acme', or None
 pm.get_hookcallers(plugin)   # the hooks this plugin contributes to
-pm.hook.add_ingredients.implementations()   # impls in call order
+pm.caller(Specs.add_ingredients).implementations()   # impls in call order
 repr(pm)                     # "<PluginManager 'kitchen' plugins=2>"
 ```
 
@@ -56,7 +56,7 @@ registering them - handy in tests or for injecting a temporary behaviour:
 def temporary_rule(record):
     return None if record.get("ok") else "not ok"
 
-problems = pm.hook.check.call_extra([temporary_rule], {"record": record})
+problems = pm.caller(Specs.check).call_extra([temporary_rule], {"record": record})
 ```
 
 The extra implementations do not persist; the next ordinary call sees only the

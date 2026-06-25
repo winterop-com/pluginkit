@@ -79,7 +79,7 @@ def run() -> list[str]:
     pm.register(database, name="database")
 
     # Startup fires the historic event with only the database plugin present.
-    pm.hook.configure.call_historic(kwargs={"settings": {"dsn": "postgres://...", "cache_ttl": "60"}})
+    pm.caller(Specs.configure).call_historic(kwargs={"settings": {"dsn": "postgres://...", "cache_ttl": "60"}})
 
     # The cache plugin loads afterwards but still receives the replayed settings.
     pm.register(CachePlugin(), name="cache")
@@ -89,7 +89,7 @@ def run() -> list[str]:
     assert cache_hooks is not None
     print("cache contributes to:", sorted(caller.name for caller in cache_hooks))
 
-    statuses: list[str] = pm.hook.health_check()
+    statuses = pm.caller(Specs.health_check)()
     return statuses
 
 

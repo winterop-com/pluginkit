@@ -45,7 +45,7 @@ def make_smoothie() -> list[str]:
     """Collect ingredients from every registered plugin."""
     pm = build_plugin_manager()
     base = ["banana", "milk"]
-    contributed = pm.hook.add_ingredients(base=base)
+    contributed = pm.caller(hookspecs.add_ingredients)(base=base)
     return base + [item for plugin_result in contributed for item in plugin_result]
 
 

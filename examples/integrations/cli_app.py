@@ -4,7 +4,7 @@ The host owns one `register_commands` hook and a root command group. Each plugin
 attaches its own subcommands, so the CLI grows by registering a plugin rather than
 editing the command tree.
 
-Run: python examples/recipes/cli_app.py --help
+Run: python examples/integrations/cli_app.py --help
 """
 
 import click
@@ -62,7 +62,7 @@ def build_cli(*plugins: object) -> click.Group:
     pm.add_hookspecs(Specs)
     for plugin in plugins or (GreetPlugin(), VersionPlugin()):
         pm.register(plugin)
-    pm.hook.register_commands(cli=cli)
+    pm.caller(Specs.register_commands)(cli=cli)
     return cli
 
 

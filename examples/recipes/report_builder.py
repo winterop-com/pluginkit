@@ -96,8 +96,8 @@ def build_plugin_manager() -> PluginManager:
 def run(data: dict[str, int]) -> str:
     """Assemble the sections and render the final report."""
     pm = build_plugin_manager()
-    body = "\n\n".join(pm.hook.section(data=data))
-    document: str = pm.hook.render(body=body)
+    body = "\n\n".join(pm.caller(Specs.section)(data=data))
+    document = pm.caller(Specs.render)(body=body) or ""
     return document
 
 

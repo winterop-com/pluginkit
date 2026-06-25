@@ -50,7 +50,7 @@ def prep_steps() -> list[str]:
     """Run every plugin's prep step and return the ordered list."""
     pm = build_plugin_manager()
     steps: list[str] = []
-    pm.hook.prep_step(steps=steps)
+    pm.caller(hookspecs.prep_step)(steps=steps)
     return steps
 
 

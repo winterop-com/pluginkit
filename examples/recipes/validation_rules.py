@@ -58,8 +58,8 @@ def build_plugin_manager() -> PluginManager:
 
 def validate(pm: PluginManager, record: Record) -> list[str]:
     """Return all problems found in a record."""
-    problems: list[str] = pm.hook.check(record=record)
-    return problems
+    problems = pm.caller(Specs.check)(record=record)
+    return [problem for problem in problems if problem is not None]
 
 
 def main() -> None:
@@ -73,7 +73,7 @@ def main() -> None:
         """Flag records that are not marked as adult."""
         return None if record.get("adult") == "yes" else "must be an adult"
 
-    extra_problems = pm.hook.check.call_extra([adult_only], {"record": record})
+    extra_problems = pm.caller(Specs.check).call_extra([adult_only], {"record": record})
     print("with one-off rule:", extra_problems)
 
     # Relax validation at runtime by dropping the email rule.

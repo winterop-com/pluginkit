@@ -66,16 +66,17 @@ print(greetings)                                     # ['hey Ada!']
 ```
 src/pluginkit/             the library (pure - no demo code)
 examples/                  everything that uses the library (not shipped):
-  recipes/                   standalone single-file scripts, run directly
+  cookbook/                  worked examples: bite-size scripts + full apps
   tour/                      pluginkit-tour: a guided CLI walkthrough
   external-plugin/           a separate distribution discovered via entry points
 docs/                      mkdocs + Material documentation
-tests/                     library, tour, and recipe tests
+tests/                     library, tour, and cookbook tests
 ```
 
-Everything that demonstrates the library lives under `examples/`. The **recipes**
-are independent scripts you run on their own; the **tour** is a guided walkthrough
-on one host; the **external-plugin** shows cross-package discovery via entry points.
+Everything that demonstrates the library lives under `examples/`. The **cookbook**
+holds standalone examples (from one-mechanism snippets to complete FastAPI/Click/pytest
+apps); the **tour** is a guided walkthrough on one host; the **external-plugin** shows
+cross-package discovery via entry points.
 
 ## Use it
 
@@ -97,14 +98,14 @@ make run DEMO=wrapper      # run one
 uv run pluginkit-tour list
 ```
 
-**The recipes** apply the library to different realistic domains - see
-[`examples/`](examples/README.md):
+**The cookbook** applies the library to realistic domains and frameworks - see
+[`examples/cookbook/`](examples/cookbook/README.md):
 
 ```bash
-uv run python examples/recipes/report_builder.py
-uv run python examples/recipes/notification_router.py
-uv run python examples/recipes/validation_rules.py
-uv run python examples/recipes/app_lifecycle.py
+uv run python examples/cookbook/report_builder.py
+uv run python examples/cookbook/fastapi_app.py
+uv run python examples/cookbook/cli_app.py --help
+uv run python examples/cookbook/app_lifecycle.py
 ```
 
 ## Documentation

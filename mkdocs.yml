@@ -49,10 +49,11 @@ nav:
       - Lifecycle and validation: production/lifecycle.md
       - Async dispatch: production/async.md
       - Differences from pluggy: production/vs-pluggy.md
-  - Integrations:
-      - FastAPI: integrations/fastapi.md
-      - Click CLI: integrations/click.md
-      - pytest: integrations/pytest.md
+  - Cookbook:
+      - Overview: cookbook/index.md
+      - FastAPI: cookbook/fastapi.md
+      - Click CLI: cookbook/click.md
+      - pytest: cookbook/pytest.md
   - API Reference: api-reference.md
 
 markdown_extensions:

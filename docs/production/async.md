@@ -81,5 +81,5 @@ The [`async_fetch.py` example](../index.md) aggregates three async sources behin
 timing wrapper:
 
 ```bash
-uv run python examples/recipes/async_fetch.py
+uv run python examples/cookbook/async_fetch.py
 ```

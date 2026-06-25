@@ -188,3 +188,57 @@ def test_register_rolls_back_when_historic_replay_raises():
 
     assert pm.plugin_names() == []  # rolled back, not left half-registered
     assert pm.get_plugin("Boom") is None
+
+
+def test_re_adding_an_extension_point_is_rejected():
+    """Re-adding a registered extension point raises instead of silently dropping its extensions."""
+    extension_point = ExtensionPoint("dup")
+    extension = Extension("dup")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def greet(name: str) -> str: ...
+
+    class Greeter:
+        @extension
+        def greet(self, name: str) -> str:
+            return name.upper()
+
+    pm = PluginManager("dup")
+    pm.add_extension_points(Specs)
+    pm.register(Greeter())
+    assert pm.caller(Specs.greet)(name="Ada") == ["ADA"]
+
+    with pytest.raises(ValueError, match="already registered"):
+        pm.add_extension_points(Specs)
+
+    # the existing wiring is intact, not dropped
+    assert pm.caller(Specs.greet)(name="Ada") == ["ADA"]
+
+
+def test_historic_call_snapshots_the_event():
+    """A historic event is snapshotted, so mutating the caller's dict can't change replays."""
+    extension_point = ExtensionPoint("hist_copy")
+    extension = Extension("hist_copy")
+    seen: list[str] = []
+
+    class Specs:
+        @staticmethod
+        @extension_point(historic=True)
+        def opened(name: str) -> None: ...
+
+    pm = PluginManager("hist_copy")
+    pm.add_extension_points(Specs)
+
+    event = {"name": "original"}
+    pm.caller(Specs.opened).call_historic(event)
+    event["name"] = "mutated"  # caller mutates the dict after firing
+
+    class Late:
+        @extension
+        def opened(self, name: str) -> None:
+            seen.append(name)
+
+    pm.register(Late())
+    assert seen == ["original"]  # the recorded snapshot, not the later mutation

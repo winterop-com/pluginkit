@@ -9,7 +9,7 @@ dependency-free; changes should keep it that way.
 make install        # uv sync (library + examples + docs tooling)
 ```
 
-Requires [uv](https://docs.astral.sh/uv/). pluginkit targets **Python 3.11+**.
+Requires [uv](https://docs.astral.sh/uv/). pluginkit targets **Python 3.13+**.
 
 ## Develop
 
@@ -20,7 +20,7 @@ make coverage       # tests with coverage
 make docs-serve     # preview the docs at http://127.0.0.1:8000
 ```
 
-CI runs `make lint` and tests across Python 3.11, 3.12, and 3.13. Please add or
+CI runs `make lint` and tests on Python 3.13. Please add or
 update tests for any behaviour change, and keep the library free of runtime
 dependencies.
 

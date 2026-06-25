@@ -242,3 +242,74 @@ def test_historic_call_snapshots_the_event():
 
     pm.register(Late())
     assert seen == ["original"]  # the recorded snapshot, not the later mutation
+
+
+def test_positional_only_and_variadic_params_are_rejected():
+    """Params that cannot be passed by keyword are rejected, since dispatch is by name."""
+    extension_point = ExtensionPoint("kinds")
+    extension = Extension("kinds")
+
+    class PosOnlySpecs:
+        @staticmethod
+        @extension_point
+        def hook(name: str, /) -> str: ...  # positional-only
+
+    with pytest.raises(ValueError, match="positional-only"):
+        PluginManager("kinds").add_extension_points(PosOnlySpecs)
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def hook(name: str) -> str: ...
+
+    pm = PluginManager("kinds")
+    pm.add_extension_points(Specs)
+
+    class VarKwImpl:
+        @extension
+        def hook(self, **kw: object) -> str:  # variadic keyword
+            return ""
+
+    with pytest.raises(ValueError, match="variadic"):
+        pm.register(VarKwImpl())
+
+
+def test_keyword_only_spec_param_rejects_positional_call():
+    """A keyword-only spec param cannot be bound positionally - matching the ParamSpec."""
+    extension_point = ExtensionPoint("kwonly")
+    extension = Extension("kwonly")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def hook(prefix: str, *, name: str) -> str: ...
+
+    class Greeter:
+        @extension
+        def hook(self, prefix: str, name: str) -> str:
+            return f"{prefix}{name}"
+
+    pm = PluginManager("kwonly")
+    pm.add_extension_points(Specs)
+    pm.register(Greeter())
+    caller = pm.caller(Specs.hook)
+
+    assert caller("Hi ", name="Ada") == ["Hi Ada"]  # prefix positional, name keyword-only
+    with pytest.raises(TypeError, match="at most 1 positional"):
+        # The type checkers also reject this (name is keyword-only) - that is the point:
+        # the runtime rejection matches what the ParamSpec advertises.
+        caller("Hi ", "Ada")  # type: ignore[misc]
+
+
+def test_async_manager_rejects_historic_extension_point():
+    """AsyncPluginManager rejects historic extension points up front, not as a dead caller."""
+    extension_point = ExtensionPoint("asynchist")
+
+    class Specs:
+        @staticmethod
+        @extension_point(historic=True)
+        def opened(name: str) -> None: ...
+
+    pm = AsyncPluginManager("asynchist")
+    with pytest.raises(ValueError, match="historic"):
+        pm.add_extension_points(Specs)

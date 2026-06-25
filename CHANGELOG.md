@@ -5,6 +5,19 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.4] - 2026-06-25
+
+### Fixed
+
+- Extension-point and extension parameters that cannot be passed by keyword
+  (positional-only, `*args`, `**kwargs`) are now **rejected at registration** instead of
+  a positional-only spec type-checking but raising at call time. Keyword-only spec
+  params can no longer be bound positionally, so a positional call binds exactly the
+  arguments the ParamSpec allows - keeping the typed caller and runtime in lockstep.
+- `AsyncPluginManager.add_extension_points` now rejects `historic=True` extension points
+  with a clear `ValueError` (historic replay needs synchronous dispatch), instead of
+  building a caller whose every call path raised.
+
 ## [0.4.3] - 2026-06-25
 
 ### Fixed

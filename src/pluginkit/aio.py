@@ -21,7 +21,6 @@ from pluginkit.manager import _UNSET, HookCaller, HookImpl, PluginManager
 from pluginkit.markers import (
     CollectingSpec,
     FirstResultSpec,
-    HookimplOpts,
     HookspecOpts,
     PipelineSpec,
 )
@@ -34,16 +33,17 @@ class AsyncHookCaller(HookCaller):
         """Await the hook: a list, a single value (firstresult), or the threaded value (pipeline)."""
         if self.spec.historic:
             raise TypeError(f"historic hook {self.name!r} must be called via call_historic()")
-        self.check_arguments(kwargs)
+        kwargs = self.check_arguments(kwargs)
         return await self._execute_async(kwargs, self._nonwrappers)
 
     async def call_extra(self, functions: list[Callable[..., Any]], kwargs: dict[str, Any]) -> Any:
         """Await the hook with extra one-off implementations that are not registered."""
         if self.spec.historic:
             raise TypeError(f"historic hook {self.name!r} must be called via call_historic()")
-        self.check_arguments(kwargs)
-        extra = [HookImpl.from_function("<call_extra>", function, HookimplOpts()) for function in functions]
-        combined = sorted([*self._nonwrappers, *extra], key=lambda candidate: candidate.order_key)
+        kwargs = self.check_arguments(kwargs)
+        combined = sorted(
+            [*self._nonwrappers, *self._prepare_extra(functions)], key=lambda candidate: candidate.order_key
+        )
         return await self._execute_async(kwargs, combined)
 
     def call_historic(self, kwargs: dict[str, Any], result_callback: Callable[[Any], None] | None = None) -> None:
@@ -106,8 +106,10 @@ class AsyncHookCaller(HookCaller):
             except BaseException as new_exc:  # noqa: BLE001 - propagate the wrapper's error onward
                 exc = new_exc
             else:
+                # Double yield: capture the error but keep unwinding the remaining
+                # wrappers so their teardown still runs; raised after the loop.
                 await generator.aclose()
-                raise RuntimeError(f"async wrapper for {self.name!r} must yield exactly once")
+                exc = RuntimeError(f"async wrapper for {self.name!r} must yield exactly once")
         if exc is not None:
             raise exc
         return result
@@ -142,9 +144,11 @@ class AsyncPipelineCaller[**P, R](AsyncHookCaller):
 class AsyncPluginManager(PluginManager):
     """A PluginManager whose hooks are awaited; impls may be coroutine functions."""
 
-    def _make_caller(self, name: str, spec: HookspecOpts, params: tuple[str, ...]) -> HookCaller:
+    def _make_caller(
+        self, name: str, spec: HookspecOpts, params: tuple[str, ...], defaults: dict[str, Any]
+    ) -> HookCaller:
         """Build an AsyncHookCaller instead of the synchronous one."""
-        return AsyncHookCaller(name=name, spec=spec, params=params)
+        return AsyncHookCaller(name=name, spec=spec, params=params, defaults=defaults)
 
     @overload  # type: ignore[override]  # async manager returns awaitable callers
     def caller[**P, R](self, spec: FirstResultSpec[P, R]) -> AsyncFirstResultCaller[P, R]: ...

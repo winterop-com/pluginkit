@@ -31,6 +31,7 @@ from pluginkit.exceptions import PluginValidationError
 from pluginkit.manager import (
     CollectingCaller,
     FirstResultCaller,
+    HistoricCaller,
     HookCaller,
     HookImpl,
     HookRelay,
@@ -40,6 +41,7 @@ from pluginkit.manager import (
 from pluginkit.markers import (
     CollectingSpec,
     FirstResultSpec,
+    HistoricSpec,
     HookimplMarker,
     HookimplOpts,
     HookspecMarker,
@@ -62,6 +64,8 @@ __all__ = [
     "CollectingSpec",
     "FirstResultCaller",
     "FirstResultSpec",
+    "HistoricCaller",
+    "HistoricSpec",
     "HookCaller",
     "HookImpl",
     "HookRelay",

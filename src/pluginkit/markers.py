@@ -61,6 +61,14 @@ class PipelineSpec[**P, R]:
         raise NotImplementedError("a spec is a declaration; call it via PluginManager.caller(spec)")
 
 
+class HistoricSpec[**P, R]:
+    """A historic hook spec: replayed to late plugins, driven via `call_historic`."""
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
+        """Specs are declarations; obtain a callable via PluginManager.caller(spec)."""
+        raise NotImplementedError("a spec is a declaration; call it via PluginManager.caller(spec)")
+
+
 class HookspecMarker:
     """Creates the @hookspec decorator bound to a project name."""
 
@@ -81,7 +89,11 @@ class HookspecMarker:
     ) -> Callable[[Callable[P, R]], PipelineSpec[P, R]]: ...
     @overload
     def __call__[**P, R](
-        self, function: None = ..., *, historic: bool = ...
+        self, function: None = ..., *, historic: Literal[True]
+    ) -> Callable[[Callable[P, R]], HistoricSpec[P, R]]: ...
+    @overload
+    def __call__[**P, R](
+        self, function: None = ..., *, historic: Literal[False] = ...
     ) -> Callable[[Callable[P, R]], CollectingSpec[P, R]]: ...
     def __call__(
         self,

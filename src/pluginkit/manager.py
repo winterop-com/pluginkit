@@ -160,11 +160,27 @@ class HookCaller:
             extra.append(impl)
         return extra
 
-    def __call__(self, **kwargs: Any) -> Any:
+    def _bind(self, args: tuple[Any, ...], kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Bind positional args to the spec's params (in order) and merge with kwargs.
+
+        Lets a typed caller be invoked positionally - `caller(value)` as well as
+        `caller(name=value)` - matching what the ParamSpec advertises.
+        """
+        if not args:
+            return kwargs
+        if len(args) > len(self.params):
+            raise TypeError(f"hook {self.name!r} takes at most {len(self.params)} positional argument(s)")
+        positional = dict(zip(self.params, args, strict=False))
+        clash = positional.keys() & kwargs.keys()
+        if clash:
+            raise TypeError(f"hook {self.name!r} got multiple values for {sorted(clash)}")
+        return {**positional, **kwargs}
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Call the hook: a list, a single value (firstresult), or the threaded value (pipeline)."""
         if self.spec.historic:
             raise TypeError(f"historic hook {self.name!r} must be called via call_historic()")
-        kwargs = self.check_arguments(kwargs)
+        kwargs = self.check_arguments(self._bind(args, kwargs))
         return self._execute(kwargs, self._nonwrappers)
 
     def call_extra(self, functions: list[Callable[..., Any]], kwargs: dict[str, Any]) -> Any:

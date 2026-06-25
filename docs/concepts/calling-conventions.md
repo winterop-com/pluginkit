@@ -18,16 +18,17 @@ cup = pm.caller(Specs.choose_cup)(size="small")                  # str | None
 `Any`). Use `pm.hook` for quick scripts and `pm.caller` when you want the type
 checker's help; both share one `PluginManager`, so you never need a manager per spec.
 
-## Keyword-only calls
+## Arguments
 
-Hooks are always called with keyword arguments:
+Calls are typically made with keyword arguments, though positional ones bind to the
+spec's parameters in order (matching the typed caller's signature):
 
 ```python
-pm.caller(Specs.add_ingredients)(base=["banana"])   # good
-pm.caller(Specs.add_ingredients)(["banana"])        # not how hooks are called
+pm.caller(Specs.add_ingredients)(base=["banana"])   # keyword (clearest)
+pm.caller(Specs.add_ingredients)(["banana"])        # positional also works
 ```
 
-This is what lets each implementation declare **only the arguments it cares
+Keyword form is what lets each implementation declare **only the arguments it cares
 about**. The caller passes the full set of kwargs; each implementation receives
 the subset matching its own signature, computed once at registration with
 `inspect.signature`.

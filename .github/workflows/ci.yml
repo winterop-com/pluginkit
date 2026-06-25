@@ -30,7 +30,7 @@ jobs:
         python-version: ${{ matrix.python }}
 
     - name: Install dependencies
-      run: make install
+      run: uv sync --frozen
 
     - name: Run linting
       if: matrix.python == '3.13'

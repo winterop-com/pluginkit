@@ -9,6 +9,38 @@ from pluginkit import Extension, ExtensionPoint, PluginManager
 from pluginkit.aio import AsyncPluginManager
 
 
+def test_caller_accepts_positional_args():
+    """A typed caller can be invoked positionally, matching what its ParamSpec advertises."""
+    extension_point = ExtensionPoint("pos")
+    extension = Extension("pos")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def greet(name: str, loud: bool = False) -> str: ...
+
+    class Greeter:
+        @extension
+        def greet(self, name: str, loud: bool) -> str:
+            return name.upper() if loud else name
+
+    pm = PluginManager("pos")
+    pm.add_extension_points(Specs)
+    pm.register(Greeter())
+    caller = pm.caller(Specs.greet)
+
+    assert caller("Ada") == ["Ada"]  # positional
+    assert caller("Ada", True) == ["ADA"]  # two positionals
+    assert caller("Ada", loud=True) == ["ADA"]  # mixed positional + keyword
+    assert caller(name="Ada") == ["Ada"]  # keyword still works
+
+    # too many positionals, and a positional/keyword clash, are rejected (via the untyped relay)
+    with pytest.raises(TypeError, match="at most"):
+        pm.hook.greet("Ada", False, "extra")
+    with pytest.raises(TypeError, match="multiple values"):
+        pm.hook.greet("Ada", name="Bob")
+
+
 def test_spec_default_args_are_optional_at_call_time():
     """A spec param with a default may be omitted; it is filled in for the impls."""
     extension_point = ExtensionPoint("def_demo")

@@ -1,4 +1,4 @@
-.PHONY: help install lint test coverage run docs docs-serve docs-build clean
+.PHONY: help install fmt lint test coverage run docs docs-serve docs-build clean
 
 UV := $(shell command -v uv 2> /dev/null)
 
@@ -10,7 +10,8 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@echo "  install      Install dependencies"
-	@echo "  lint         Run linter and type checkers"
+	@echo "  fmt          Format and autofix (mutates files)"
+	@echo "  lint         Check formatting, lints, and types (no mutation)"
 	@echo "  test         Run tests"
 	@echo "  coverage     Run tests with coverage reporting"
 	@echo "  run          Run every demo end to end (DEMO=name for one)"
@@ -23,10 +24,15 @@ install:
 	@echo ">>> Installing dependencies"
 	@$(UV) sync --all-extras
 
-lint:
-	@echo ">>> Running linter"
+fmt:
+	@echo ">>> Formatting and autofixing"
 	@$(UV) run ruff format .
 	@$(UV) run ruff check . --fix
+
+lint:
+	@echo ">>> Checking formatting and lints (no mutation)"
+	@$(UV) run ruff format --check .
+	@$(UV) run ruff check .
 	@echo ">>> Running type checkers"
 	@$(UV) run mypy src tests examples/cookbook examples/tour/src
 	@$(UV) run pyright

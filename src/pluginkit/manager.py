@@ -38,6 +38,30 @@ from pluginkit.markers import (
 # Sentinel distinguishing "no result yet" from a legitimate None result.
 _UNSET: Any = object()
 
+# pluginkit dispatches by keyword (each impl receives the subset of named arguments it
+# declares), so every parameter must be addressable by name.
+_KEYWORD_DISPATCHABLE = frozenset({inspect.Parameter.POSITIONAL_OR_KEYWORD, inspect.Parameter.KEYWORD_ONLY})
+
+
+def _positional_arity(signature: inspect.Signature, label: str, name: str) -> int:
+    """Validate that every parameter can be passed by keyword and return the positional arity.
+
+    Rejects positional-only, `*args`, and `**kwargs` parameters (none are addressable by a
+    fixed name), and returns how many leading parameters may *also* be passed positionally -
+    so a positional call binds exactly the arguments the ParamSpec allows positionally.
+    """
+    arity = 0
+    for param_name, parameter in signature.parameters.items():
+        if parameter.kind not in _KEYWORD_DISPATCHABLE:
+            raise ValueError(
+                f"{label} {name!r} parameter {param_name!r} is {parameter.kind.description}; "
+                f"pluginkit dispatches by keyword, so only positional-or-keyword and keyword-only "
+                f"parameters are supported"
+            )
+        if parameter.kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
+            arity += 1
+    return arity
+
 
 @dataclass(slots=True)
 class HookImpl:
@@ -55,7 +79,9 @@ class HookImpl:
     @classmethod
     def from_function(cls, plugin_name: str, function: Callable[..., Any], opts: ExtensionOpts) -> Self:
         """Build an impl, recording which keyword arguments the function declares."""
-        params = tuple(inspect.signature(function).parameters)
+        signature = inspect.signature(function)
+        _positional_arity(signature, "implementation", getattr(function, "__qualname__", plugin_name))
+        params = tuple(signature.parameters)
         return cls(plugin_name=plugin_name, function=function, opts=opts, accepts=frozenset(params), params=params)
 
     def call(self, kwargs: dict[str, Any]) -> Any:
@@ -93,6 +119,9 @@ class HookCaller:
     # branded caller's ParamSpec makes them optional); they are filled in at call
     # time so the type checker and the runtime agree.
     defaults: dict[str, Any] = field(default_factory=dict)
+    # How many leading params may be passed positionally (the rest are keyword-only);
+    # -1 means "derive as all params" for callers built directly without kind info.
+    positional_arity: int = -1
     _impls: list[HookImpl] = field(default_factory=list)
     _wrappers: list[HookImpl] = field(default_factory=list)
     _nonwrappers: list[HookImpl] = field(default_factory=list)
@@ -102,6 +131,8 @@ class HookCaller:
         """Derive the argument-name set from the ordered parameters when given."""
         if self.params and not self.argnames:
             self.argnames = frozenset(self.params)
+        if self.positional_arity < 0:
+            self.positional_arity = len(self.params)
 
     def check_arguments(self, kwargs: dict[str, Any]) -> dict[str, Any]:
         """Fill any omitted defaulted args, then validate the call against the spec.
@@ -168,9 +199,9 @@ class HookCaller:
         """
         if not args:
             return kwargs
-        if len(args) > len(self.params):
-            raise TypeError(f"hook {self.name!r} takes at most {len(self.params)} positional argument(s)")
-        positional = dict(zip(self.params, args, strict=False))
+        if len(args) > self.positional_arity:
+            raise TypeError(f"hook {self.name!r} takes at most {self.positional_arity} positional argument(s)")
+        positional = dict(zip(self.params[: self.positional_arity], args, strict=False))
         clash = positional.keys() & kwargs.keys()
         if clash:
             raise TypeError(f"hook {self.name!r} got multiple values for {sorted(clash)}")
@@ -407,6 +438,7 @@ class PluginManager:
                 if not isinstance(spec, ExtensionPointOpts):
                     continue
                 signature = inspect.signature(member)
+                arity = _positional_arity(signature, "extension point", member_name)
                 params = tuple(signature.parameters)
                 defaults = {
                     name: parameter.default
@@ -419,13 +451,13 @@ class PluginManager:
                         f"re-adding it would drop the implementations already wired to it"
                     )
                 self._validate_spec(member_name, spec, params)
-                self.hook._add_caller(self._make_caller(member_name, spec, params, defaults))
+                self.hook._add_caller(self._make_caller(member_name, spec, params, defaults, arity))
 
     def _make_caller(
-        self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any]
+        self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any], arity: int
     ) -> HookCaller:
         """Build the caller for a spec; overridden by AsyncPluginManager."""
-        return HookCaller(name=name, spec=spec, params=params, defaults=defaults)
+        return HookCaller(name=name, spec=spec, params=params, defaults=defaults, positional_arity=arity)
 
     @overload
     def caller[**P, R](self, spec: FirstResultSpec[P, R]) -> FirstResultCaller[P, R]: ...

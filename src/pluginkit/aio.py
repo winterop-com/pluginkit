@@ -145,10 +145,15 @@ class AsyncPluginManager(PluginManager):
     """A PluginManager whose hooks are awaited; impls may be coroutine functions."""
 
     def _make_caller(
-        self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any]
+        self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any], arity: int
     ) -> HookCaller:
-        """Build an AsyncHookCaller instead of the synchronous one."""
-        return AsyncHookCaller(name=name, spec=spec, params=params, defaults=defaults)
+        """Build an AsyncHookCaller; historic extension points are not supported async-side."""
+        if spec.historic:
+            raise ValueError(
+                f"historic extension point {name!r} is not supported by AsyncPluginManager "
+                f"(historic replay requires synchronous dispatch)"
+            )
+        return AsyncHookCaller(name=name, spec=spec, params=params, defaults=defaults, positional_arity=arity)
 
     @overload  # type: ignore[override]  # async manager returns awaitable callers
     def caller[**P, R](self, spec: FirstResultSpec[P, R]) -> AsyncFirstResultCaller[P, R]: ...

@@ -237,15 +237,16 @@ class HookCaller:
         if not self.spec.historic:
             raise TypeError(f"hook {self.name!r} is not historic")
         kwargs = self.check_arguments(kwargs)
-        # Dispatch to the current impls first: if one raises, the call fails without
-        # recording the event, so a later plugin never replays a call that did not succeed.
+        # Dispatch to the current impls and fire their callbacks first: if either the
+        # dispatch or a callback raises, the call fails without recording the event, so a
+        # later plugin never replays (and re-fails on) a call that did not fully succeed.
         outcomes = self._collect(kwargs)
-        # Record only after a successful dispatch, snapshotting the event so a later
-        # mutation of the caller's dict can't change what plugins replay.
-        self._history.append((dict(kwargs), result_callback))
         for outcome in outcomes:
             if result_callback is not None:
                 result_callback(outcome)
+        # Record only after a fully successful call, snapshotting the event so a later
+        # mutation of the caller's dict can't change what plugins replay.
+        self._history.append((dict(kwargs), result_callback))
 
     def _reindex(self) -> None:
         """Re-sort impls by priority and refresh the wrapper / non-wrapper split."""

@@ -5,6 +5,15 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.7] - 2026-06-25
+
+### Fixed
+
+- `call_historic` records the event only after its result callbacks have run, so a
+  callback that raises no longer leaves a poisoned entry in the replay history (which
+  would otherwise re-fail every later plugin registration). Completes the 0.4.6 fix,
+  which still recorded the event before the callback ran.
+
 ## [0.4.6] - 2026-06-25
 
 ### Fixed

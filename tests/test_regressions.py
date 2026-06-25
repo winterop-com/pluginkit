@@ -392,6 +392,44 @@ def test_failed_historic_call_is_not_recorded():
     assert seen == []  # the failed event was never recorded, so nothing replays
 
 
+def test_historic_call_with_failing_callback_is_not_recorded():
+    """If the result callback raises, the event is not recorded, so it cannot re-fail later."""
+    extension_point = ExtensionPoint("cbfail")
+    extension = Extension("cbfail")
+
+    class Specs:
+        @staticmethod
+        @extension_point(historic=True)
+        def opened(name: str) -> str: ...
+
+    class Plugin:
+        @extension
+        def opened(self, name: str) -> str:
+            return name  # non-None, so the callback fires
+
+    pm = PluginManager("cbfail")
+    pm.add_extension_points(Specs)
+    pm.register(Plugin())
+
+    def boom_callback(outcome: object) -> None:
+        raise RuntimeError("callback boom")
+
+    with pytest.raises(RuntimeError, match="callback boom"):
+        pm.caller(Specs.opened).call_historic({"name": "evt"}, boom_callback)
+
+    # the event was not recorded, so registering a later plugin neither replays nor re-fails on it
+    seen: list[str] = []
+
+    class Late:
+        @extension
+        def opened(self, name: str) -> str:
+            seen.append(name)
+            return name
+
+    pm.register(Late())  # must not raise
+    assert seen == []
+
+
 def test_call_extra_rejects_invalid_signature_with_typeerror():
     """call_extra reports an invalid temporary impl signature as TypeError, like its other checks."""
     extension_point = ExtensionPoint("extra")

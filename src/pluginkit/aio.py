@@ -29,11 +29,11 @@ from pluginkit.markers import (
 class AsyncHookCaller(HookCaller):
     """A HookCaller whose calls are coroutines that await async implementations."""
 
-    async def __call__(self, **kwargs: Any) -> Any:
+    async def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Await the hook: a list, a single value (firstresult), or the threaded value (pipeline)."""
         if self.spec.historic:
             raise TypeError(f"historic hook {self.name!r} must be called via call_historic()")
-        kwargs = self.check_arguments(kwargs)
+        kwargs = self.check_arguments(self._bind(args, kwargs))
         return await self._execute_async(kwargs, self._nonwrappers)
 
     async def call_extra(self, functions: list[Callable[..., Any]], kwargs: dict[str, Any]) -> Any:

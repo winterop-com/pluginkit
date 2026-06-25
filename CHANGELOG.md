@@ -5,6 +5,23 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.2] - 2026-06-25
+
+### Fixed
+
+- Typed callers can now be invoked **positionally** at runtime, matching what the
+  ParamSpec advertised - `pm.caller(spec)("x")` previously type-checked but raised a
+  `TypeError`. Too many positionals or a positional/keyword clash are rejected cleanly.
+- The built wheel and sdist now **include the LICENSE file**, via SPDX
+  `license`/`license-files` metadata (which also clears the deprecated-license-classifier
+  build warning).
+
+### Changed
+
+- `make lint` is now **check-only** (no file mutation: `ruff format --check`, `ruff check`,
+  mypy, pyright); use the new `make fmt` to format and autofix. CI runs the check-only
+  lint and installs with `uv sync --frozen` so the committed lockfile is enforced.
+
 ## [0.4.1] - 2026-06-25
 
 ### Changed

@@ -5,6 +5,26 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.3.1] - 2026-06-25
+
+### Fixed
+
+- Spec arguments with a default are now optional at the call site (filled in at call
+  time), matching what the typed caller advertises - omitting one previously raised a
+  runtime `TypeError`.
+- `AsyncPluginManager` `call_extra` now validates extra-impl arguments like the sync
+  path, raising a clear `TypeError` instead of a later `KeyError`.
+- A wrapper that yields more than once no longer aborts teardown of the other
+  wrappers; the rest unwind before the error propagates (sync and async).
+- `register` rolls back if wiring a plugin fails part-way (e.g. a historic replay
+  raising), so registration is all-or-nothing.
+
+### Changed
+
+- `@hookspec(historic=True)` now brands a `HistoricSpec`, so `caller(spec)` returns a
+  `HistoricCaller` (replayed via `call_historic`) instead of a collecting caller whose
+  typed call form always raised.
+
 ## [0.3.0] - 2026-06-25
 
 ### Added

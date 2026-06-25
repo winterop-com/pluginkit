@@ -23,12 +23,13 @@ from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, field
 from importlib.metadata import entry_points
 from types import GeneratorType
-from typing import Any, Self, overload
+from typing import Any, NoReturn, Self, overload
 
 from pluginkit.exceptions import PluginValidationError
 from pluginkit.markers import (
     CollectingSpec,
     FirstResultSpec,
+    HistoricSpec,
     HookimplOpts,
     HookspecOpts,
     PipelineSpec,
@@ -88,6 +89,10 @@ class HookCaller:
     spec: HookspecOpts
     params: tuple[str, ...] = ()
     argnames: frozenset[str] = frozenset()
+    # Default values for spec params that declare one. A call may omit these (the
+    # branded caller's ParamSpec makes them optional); they are filled in at call
+    # time so the type checker and the runtime agree.
+    defaults: dict[str, Any] = field(default_factory=dict)
     _impls: list[HookImpl] = field(default_factory=list)
     _wrappers: list[HookImpl] = field(default_factory=list)
     _nonwrappers: list[HookImpl] = field(default_factory=list)
@@ -98,11 +103,18 @@ class HookCaller:
         if self.params and not self.argnames:
             self.argnames = frozenset(self.params)
 
-    def check_arguments(self, kwargs: dict[str, Any]) -> None:
-        """Validate that a call supplies exactly the spec's arguments."""
+    def check_arguments(self, kwargs: dict[str, Any]) -> dict[str, Any]:
+        """Fill any omitted defaulted args, then validate the call against the spec.
+
+        Returns the completed kwargs (defaults filled). Spec params with a default
+        are optional at the call site; required params and unknown args are still
+        rejected.
+        """
+        if self.defaults:
+            kwargs = {**self.defaults, **kwargs}
         # dict_keys compares as a set against the frozenset without allocating one.
         if kwargs.keys() == self.argnames:
-            return
+            return kwargs
         provided = frozenset(kwargs)
         problems: list[str] = []
         missing = self.argnames - provided
@@ -136,11 +148,23 @@ class HookCaller:
         """Return whether the named plugin contributes any impl to this hook."""
         return any(impl.plugin_name == plugin_name for impl in self._impls)
 
+    def _prepare_extra(self, functions: list[Callable[..., Any]]) -> list[HookImpl]:
+        """Build one-off impls for call_extra, validating their args against the spec."""
+        extra: list[HookImpl] = []
+        for function in functions:
+            impl = HookImpl.from_function("<call_extra>", function, HookimplOpts())
+            unknown = impl.accepts - self.argnames
+            if unknown:
+                raise TypeError(f"call_extra impl for {self.name!r} declares unknown argument(s) {sorted(unknown)}")
+            impl.passthrough = impl.accepts == self.argnames
+            extra.append(impl)
+        return extra
+
     def __call__(self, **kwargs: Any) -> Any:
         """Call the hook: a list, a single value (firstresult), or the threaded value (pipeline)."""
         if self.spec.historic:
             raise TypeError(f"historic hook {self.name!r} must be called via call_historic()")
-        self.check_arguments(kwargs)
+        kwargs = self.check_arguments(kwargs)
         return self._execute(kwargs, self._nonwrappers)
 
     def call_extra(self, functions: list[Callable[..., Any]], kwargs: dict[str, Any]) -> Any:
@@ -152,23 +176,17 @@ class HookCaller:
         """
         if self.spec.historic:
             raise TypeError(f"historic hook {self.name!r} must be called via call_historic()")
-        self.check_arguments(kwargs)
-        extra: list[HookImpl] = []
-        for function in functions:
-            impl = HookImpl.from_function("<call_extra>", function, HookimplOpts())
-            unknown = impl.accepts - self.argnames
-            if unknown:
-                raise TypeError(f"call_extra impl for {self.name!r} declares unknown argument(s) {sorted(unknown)}")
-            impl.passthrough = impl.accepts == self.argnames
-            extra.append(impl)
-        combined = sorted([*self._nonwrappers, *extra], key=lambda candidate: candidate.order_key)
+        kwargs = self.check_arguments(kwargs)
+        combined = sorted(
+            [*self._nonwrappers, *self._prepare_extra(functions)], key=lambda candidate: candidate.order_key
+        )
         return self._execute(kwargs, combined)
 
     def call_historic(self, kwargs: dict[str, Any], result_callback: Callable[[Any], None] | None = None) -> None:
         """Call a historic hook now and remember it for plugins registered later."""
         if not self.spec.historic:
             raise TypeError(f"hook {self.name!r} is not historic")
-        self.check_arguments(kwargs)
+        kwargs = self.check_arguments(kwargs)
         self._history.append((kwargs, result_callback))
         for outcome in self._collect(kwargs):
             if result_callback is not None:
@@ -265,8 +283,10 @@ class HookCaller:
                 exc = new_exc
             else:
                 # The generator yielded a second time, violating the one-yield contract.
+                # Capture the error but keep unwinding so the remaining wrappers still
+                # tear down; the error propagates through them and is raised at the end.
                 generator.close()
-                raise RuntimeError(f"wrapper for {self.name!r} must yield exactly once")
+                exc = RuntimeError(f"wrapper for {self.name!r} must yield exactly once")
         if exc is not None:
             raise exc
         return result
@@ -305,6 +325,18 @@ class PipelineCaller[**P, R](HookCaller):
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> R:
         """Call the pipeline hook, returning the threaded value `R`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is a HookCaller
+
+
+class HistoricCaller[**P, R](HookCaller):
+    """A historic hook's typed caller. Replay it with `call_historic({...})`.
+
+    Calling it directly raises - historic hooks have no plain call form - so the
+    typed `__call__` is `NoReturn` rather than a value it never produces.
+    """
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> NoReturn:
+        """Historic hooks cannot be called directly; use `call_historic`."""
         raise NotImplementedError  # pragma: no cover - the runtime object is a HookCaller
 
 
@@ -356,18 +388,28 @@ class PluginManager:
                 spec = getattr(member, self._spec_attribute, None)
                 if not isinstance(spec, HookspecOpts):
                     continue
-                params = tuple(inspect.signature(member).parameters)
+                signature = inspect.signature(member)
+                params = tuple(signature.parameters)
+                defaults = {
+                    name: parameter.default
+                    for name, parameter in signature.parameters.items()
+                    if parameter.default is not inspect.Parameter.empty
+                }
                 self._validate_spec(member_name, spec, params)
-                self.hook._add_caller(self._make_caller(member_name, spec, params))
+                self.hook._add_caller(self._make_caller(member_name, spec, params, defaults))
 
-    def _make_caller(self, name: str, spec: HookspecOpts, params: tuple[str, ...]) -> HookCaller:
+    def _make_caller(
+        self, name: str, spec: HookspecOpts, params: tuple[str, ...], defaults: dict[str, Any]
+    ) -> HookCaller:
         """Build the caller for a spec; overridden by AsyncPluginManager."""
-        return HookCaller(name=name, spec=spec, params=params)
+        return HookCaller(name=name, spec=spec, params=params, defaults=defaults)
 
     @overload
     def caller[**P, R](self, spec: FirstResultSpec[P, R]) -> FirstResultCaller[P, R]: ...
     @overload
     def caller[**P, R](self, spec: PipelineSpec[P, R]) -> PipelineCaller[P, R]: ...
+    @overload
+    def caller[**P, R](self, spec: HistoricSpec[P, R]) -> HistoricCaller[P, R]: ...
     @overload
     def caller[**P, R](self, spec: CollectingSpec[P, R]) -> CollectingCaller[P, R]: ...
     def caller(self, spec: object) -> HookCaller:
@@ -419,8 +461,16 @@ class PluginManager:
 
             impls = self._collect_impls(plugin_name, plugin)
             self._name2plugin[plugin_name] = plugin
-            for caller, impl in impls:
-                caller.add_impl(impl)
+            try:
+                for caller, impl in impls:
+                    caller.add_impl(impl)
+            except BaseException:
+                # add_impl can fail mid-loop (e.g. a historic replay raising). Roll the
+                # partial wiring back so registration is all-or-nothing.
+                self._name2plugin.pop(plugin_name, None)
+                for caller in self.hook._all_callers():
+                    caller.remove_plugin(plugin_name)
+                raise
             return plugin_name
 
     def unregister(self, name_or_plugin: str | object) -> object | None:
@@ -490,6 +540,11 @@ class PluginManager:
 
         Returns:
             The number of plugins successfully registered.
+
+        Note:
+            With ``ignore_errors=False``, a failure part-way through leaves the
+            plugins registered before it registered; this method does not roll back
+            across plugins.
         """
         count = 0
         for entry_point in entry_points(group=group):

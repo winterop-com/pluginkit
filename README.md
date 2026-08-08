@@ -44,8 +44,8 @@ pm = PluginManager("greeter")
 pm.add_extension_points(Specs)
 pm.register(Casual(), name="casual")
 
-greetings = pm.caller(Specs.greeting)(name="Ada")   # typed list[str] - derived, not asserted
-print(greetings)                                     # ['hey Ada!']
+greetings = pm.caller(Specs.greeting)(name="Ada")  # typed list[str] - derived, not asserted
+print(greetings)  # ['hey Ada!']
 ```
 
 ## What it supports

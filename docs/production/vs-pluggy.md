@@ -11,9 +11,9 @@ In pluggy, `pm.hook.foo(...)` returns `Any` - the type checker sees neither the
 hook's arguments nor its result. pluginkit derives both from the spec:
 
 ```python
-greetings = pm.caller(Specs.greeting)(name="Ada")   # list[str]
-cup = pm.caller(Specs.choose_cup)(size="L")          # str | None  (firstresult)
-total = pm.caller(Specs.fold)(value=v)               # R           (pipeline)
+greetings = pm.caller(Specs.greeting)(name="Ada")  # list[str]
+cup = pm.caller(Specs.choose_cup)(size="L")  # str | None  (firstresult)
+total = pm.caller(Specs.fold)(value=v)  # R           (pipeline)
 ```
 
 The return type is mode-correct - `list[R]` for collecting, `R | None` for

@@ -11,7 +11,7 @@ dispatch mode and checked by mypy and pyright - no hand annotations:
 
 ```python
 ingredients = pm.caller(Specs.add_ingredients)(base=["banana"])  # list[list[str]]
-cup = pm.caller(Specs.choose_cup)(size="small")                  # str | None
+cup = pm.caller(Specs.choose_cup)(size="small")  # str | None
 ```
 
 `pm.hook.<name>(...)` works too and is more concise, but it is untyped (returns
@@ -24,8 +24,8 @@ Calls are typically made with keyword arguments, though positional ones bind to 
 spec's parameters in order (matching the typed caller's signature):
 
 ```python
-pm.caller(Specs.add_ingredients)(base=["banana"])   # keyword (clearest)
-pm.caller(Specs.add_ingredients)(["banana"])        # positional also works
+pm.caller(Specs.add_ingredients)(base=["banana"])  # keyword (clearest)
+pm.caller(Specs.add_ingredients)(["banana"])  # positional also works
 ```
 
 Keyword form is what lets each implementation declare **only the arguments it cares
@@ -35,11 +35,12 @@ the subset matching its own signature, computed once at registration with
 
 ```python
 @extension
-def add_ingredients(self):          # ignores base entirely
+def add_ingredients(self):  # ignores base entirely
     return ["honey"]
 
+
 @extension
-def add_ingredients(self, base):    # receives base
+def add_ingredients(self, base):  # receives base
     return [] if "berry" in base else ["blueberry"]
 ```
 
@@ -57,7 +58,7 @@ A spec marked `firstresult` stops at the first implementation that returns a
 non-`None` value and returns that value directly - not a list (typed `R | None`):
 
 ```python
-pm.caller(Specs.choose_cup)(size="small")   # '8oz paper cup'
+pm.caller(Specs.choose_cup)(size="small")  # '8oz paper cup'
 ```
 
 `None` results are skipped in both modes, so an implementation can abstain simply

@@ -11,8 +11,8 @@ project-namespaced attribute. Nothing else happens at decoration time - the
 manager reads those attributes later by introspection.
 
 ```python
-extension_point = ExtensionPoint("kitchen")   # stamps  func.kitchen_spec = ExtensionPointOpts(...)
-extension = Extension("kitchen")   # stamps  func.kitchen_impl = ExtensionOpts(...)
+extension_point = ExtensionPoint("kitchen")  # stamps  func.kitchen_spec = ExtensionPointOpts(...)
+extension = Extension("kitchen")  # stamps  func.kitchen_impl = ExtensionOpts(...)
 ```
 
 Because the marker only sets an attribute and returns the function unchanged, a
@@ -25,10 +25,11 @@ Both markers support `@extension` and `@extension(...)`. This is expressed with
 `typing.overload` so a type checker understands both:
 
 ```python
-@extension                       # bare form
+@extension  # bare form
 def add_ingredients(self, base): ...
 
-@extension(tryfirst=True)        # called form with options
+
+@extension(tryfirst=True)  # called form with options
 def prep_step(self, steps): ...
 ```
 

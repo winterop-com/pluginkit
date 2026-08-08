@@ -34,7 +34,7 @@ Any plugin registered after the call immediately receives it:
 ```python
 pm.register(early, name="early")
 pm.caller(Specs.kitchen_opened).call_historic(kwargs={"name": "Main Street"})
-pm.register(late, name="late")     # 'late' still runs kitchen_opened("Main Street")
+pm.register(late, name="late")  # 'late' still runs kitchen_opened("Main Street")
 ```
 
 The `result_callback` fires once per implementation - for plugins present at call

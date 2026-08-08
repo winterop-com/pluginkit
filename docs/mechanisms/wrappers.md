@@ -33,9 +33,9 @@ class TimingWrapper:
     def blend(self, contents):
         start = perf_counter()
         try:
-            return (yield)            # propagate the inner result
+            return (yield)  # propagate the inner result
         finally:
-            record(perf_counter() - start)   # always runs, even on error
+            record(perf_counter() - start)  # always runs, even on error
 ```
 
 A wrapper may also swallow the exception by returning a value instead of

@@ -38,6 +38,7 @@ hands it to tests:
 ```python
 import pytest
 
+
 def build_checker(*plugins: object) -> Checker:
     pm = PluginManager("checks")
     pm.add_extension_points(Specs)

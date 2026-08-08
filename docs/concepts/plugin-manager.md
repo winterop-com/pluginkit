@@ -30,7 +30,7 @@ each spec's argument names, which are used later to validate implementations.
 
 ```python
 pm = PluginManager("kitchen")
-pm.add_extension_points(points)   # a module is fine
+pm.add_extension_points(points)  # a module is fine
 ```
 
 ## Registering plugins
@@ -54,11 +54,11 @@ The manager tracks names to plugin objects, so the usual lifecycle operations ar
 available:
 
 ```python
-pm.is_registered(plugin)   # bool
-pm.get_plugin("berry")     # object | None
-pm.get_name(plugin)        # str | None
-pm.plugin_names()          # ['berry', 'greens']
-pm.unregister("berry")     # remove it and all its impls
+pm.is_registered(plugin)  # bool
+pm.get_plugin("berry")  # object | None
+pm.get_name(plugin)  # str | None
+pm.plugin_names()  # ['berry', 'greens']
+pm.unregister("berry")  # remove it and all its impls
 ```
 
 ## Blocking
@@ -69,7 +69,7 @@ out, including ones that would otherwise arrive via entry-point discovery.
 
 ```python
 pm.set_blocked("greens")
-pm.is_blocked("greens")    # True
+pm.is_blocked("greens")  # True
 ```
 
 ## Thread safety
@@ -87,7 +87,7 @@ derived from the spec's dispatch mode (`list[R]` for collecting, `R | None` for
 firstresult, `R` for pipeline), checked by mypy and pyright.
 
 ```python
-results = pm.caller(Specs.add_ingredients)(base=["banana"])   # typed list[list[str]]
+results = pm.caller(Specs.add_ingredients)(base=["banana"])  # typed list[list[str]]
 ```
 
 ## The hook relay

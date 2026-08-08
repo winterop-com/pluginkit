@@ -57,7 +57,7 @@ class TimingWrapper:
         try:
             yield
         finally:
-            record(monotonic() - start)   # runs even if an impl raised
+            record(monotonic() - start)  # runs even if an impl raised
 ```
 
 They run setup before `yield`, teardown after it (including in a `finally`), and

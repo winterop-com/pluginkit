@@ -28,9 +28,9 @@ Validation covers:
 ## Removal and blocking
 
 ```python
-pm.unregister("acme")        # remove it and all its extensions
-pm.set_blocked("acme")       # remove it AND refuse to register it again
-pm.is_blocked("acme")        # True
+pm.unregister("acme")  # remove it and all its extensions
+pm.set_blocked("acme")  # remove it AND refuse to register it again
+pm.is_blocked("acme")  # True
 ```
 
 Blocking is checked by both `register` and `load_entrypoints`, so a blocked name
@@ -39,12 +39,12 @@ cannot sneak back in through entry-point discovery.
 ## Introspection
 
 ```python
-pm.plugin_names()            # ['acme', 'widget']
-pm.get_plugin("acme")        # the object, or None
-pm.get_name(plugin)          # 'acme', or None
-pm.get_hookcallers(plugin)   # the hooks this plugin contributes to
-pm.caller(Specs.add_ingredients).implementations()   # impls in call order
-repr(pm)                     # "<PluginManager 'kitchen' plugins=2>"
+pm.plugin_names()  # ['acme', 'widget']
+pm.get_plugin("acme")  # the object, or None
+pm.get_name(plugin)  # 'acme', or None
+pm.get_hookcallers(plugin)  # the hooks this plugin contributes to
+pm.caller(Specs.add_ingredients).implementations()  # impls in call order
+repr(pm)  # "<PluginManager 'kitchen' plugins=2>"
 ```
 
 ## One-off implementations
@@ -55,6 +55,7 @@ registering them - handy in tests or for injecting a temporary behaviour:
 ```python
 def temporary_rule(record):
     return None if record.get("ok") else "not ok"
+
 
 problems = pm.caller(Specs.check).call_extra([temporary_rule], {"record": record})
 ```

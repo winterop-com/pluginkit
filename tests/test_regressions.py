@@ -321,7 +321,7 @@ def test_keyword_only_spec_param_rejects_positional_call():
     with pytest.raises(TypeError, match="at most 1 positional"):
         # The type checkers also reject this (name is keyword-only) - that is the point:
         # the runtime rejection matches what the ParamSpec advertises.
-        caller("Hi ", "Ada")  # type: ignore[misc]
+        caller("Hi ", "Ada")  # type: ignore[call-arg]
 
 
 def test_async_manager_rejects_historic_extension_point():

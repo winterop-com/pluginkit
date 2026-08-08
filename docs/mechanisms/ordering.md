@@ -12,6 +12,7 @@ class WashPlugin:
     def prep_step(self, steps: list[str]) -> None:
         steps.append("wash produce")
 
+
 class GarnishPlugin:
     @extension(trylast=True)
     def prep_step(self, steps: list[str]) -> None:

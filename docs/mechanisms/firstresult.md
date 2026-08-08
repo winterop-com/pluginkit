@@ -19,7 +19,7 @@ implementation in order is then given a chance.
 class SmallCupPlugin:
     @extension
     def choose_cup(self, size: str) -> str | None:
-        return "8oz paper cup" if size == "small" else None   # abstain otherwise
+        return "8oz paper cup" if size == "small" else None  # abstain otherwise
 ```
 
 ## A fallback that always answers

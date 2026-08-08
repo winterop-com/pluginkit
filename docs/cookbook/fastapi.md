@@ -63,6 +63,7 @@ exactly the plugins under test:
 ```python
 from fastapi.testclient import TestClient
 
+
 def test_routes():
     client = TestClient(build_app())
     assert client.get("/health").json() == {"status": "ok"}

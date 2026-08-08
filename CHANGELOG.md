@@ -5,6 +5,18 @@ All notable changes to this project are documented here. The format is based on
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Until 1.0.0 the
 public API may change between minor versions.
 
+## [0.4.8] - 2026-08-08
+
+### Changed
+
+- Upgraded the development toolchain: mypy 2.3, ruff 0.16, pyright 1.1.411, pytest
+  ecosystem, FastAPI/Starlette/uvicorn, and MkDocs stack. No library code changes;
+  pluginkit still has zero runtime dependencies.
+- Replaced the `httpx` dev dependency with `httpx2` for the FastAPI example's
+  `TestClient`, following Starlette 1.5's deprecation of the httpx-based client.
+- Reformatted Python code blocks in the documentation with ruff 0.16, which now
+  formats Markdown code blocks (whitespace-only changes).
+
 ## [0.4.7] - 2026-06-25
 
 ### Fixed

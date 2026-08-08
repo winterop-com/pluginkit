@@ -61,6 +61,7 @@ Testing uses Click's `CliRunner` against an app built from chosen plugins:
 ```python
 from click.testing import CliRunner
 
+
 def test_commands():
     cli = build_cli()
     runner = CliRunner()

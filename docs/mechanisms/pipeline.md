@@ -24,6 +24,7 @@ class StripStage:
     def transform(self, text: str) -> str:
         return text.strip()
 
+
 class TitleCaseStage:
     @extension
     def transform(self, text: str) -> str:
@@ -41,7 +42,7 @@ Call the hook with the threaded argument by name; the result is the final value,
 not a list:
 
 ```python
-pm.caller(Specs.transform)(text="  hello   world  ")   # 'Hello World!'
+pm.caller(Specs.transform)(text="  hello   world  ")  # 'Hello World!'
 ```
 
 ## Constraints

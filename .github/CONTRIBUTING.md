@@ -39,4 +39,6 @@ dependencies.
 
 Maintainers cut releases by bumping `version` in `pyproject.toml` and pushing a
 matching `vX.Y.Z` tag - the release workflow builds and publishes to PyPI via
-trusted publishing.
+trusted publishing. It creates the GitHub release with an empty body on
+purpose; write the notes by hand afterwards with
+`gh release edit vX.Y.Z --notes-file <file>`.

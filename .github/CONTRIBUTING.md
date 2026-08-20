@@ -37,6 +37,6 @@ dependencies.
 
 ## Releases
 
-Maintainers cut releases by bumping `version` in `pyproject.toml`, updating
-`CHANGELOG.md`, and pushing a matching `vX.Y.Z` tag - the release workflow builds
-and publishes to PyPI via trusted publishing.
+Maintainers cut releases by bumping `version` in `pyproject.toml` and pushing a
+matching `vX.Y.Z` tag - the release workflow builds and publishes to PyPI via
+trusted publishing.

@@ -77,12 +77,16 @@ jobs:
         with:
           name: dist
           path: dist/
-      - name: Create release with auto-generated notes
+      # Deliberately no --generate-notes: it emits a bare list of PR-title
+      # links that says nothing about what changed. The release is created
+      # with an empty body and a maintainer writes the notes by hand with
+      # `gh release edit <tag> --notes-file <file>`.
+      - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
-            --generate-notes \
+            --notes "" \
             --verify-tag \
             dist/*.whl dist/*.tar.gz

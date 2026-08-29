@@ -21,6 +21,12 @@ firstresult, `R` for pipeline - and checked by mypy and pyright, not asserted by
 hand. This is the main reason to reach for pluginkit, and it is practical precisely
 because it targets only Python 3.13 (PEP 695 generics + ParamSpec).
 
+This guarantee covers the typed caller's arguments and result. Independently
+decorated implementations are not statically linked to a spec; runtime
+registration validates argument names, not parameter or return annotations. Hosts
+that require complete implementation conformance can add a `Protocol` for their
+plugin contract.
+
 ## Also beyond pluggy
 
 - **[Pipeline dispatch](../mechanisms/pipeline.md)** - a fold/middleware mode where

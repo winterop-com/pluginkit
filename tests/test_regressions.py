@@ -9,6 +9,51 @@ from pluginkit import Extension, ExtensionPoint, PluginManager, PluginValidation
 from pluginkit.aio import AsyncPluginManager
 
 
+def test_caller_requires_the_exact_registered_extension_point():
+    point_a = ExtensionPoint("a")
+    point_b = ExtensionPoint("b")
+
+    class SpecsA:
+        @staticmethod
+        @point_a
+        def same(value: int) -> int: ...
+
+    class SpecsB:
+        @staticmethod
+        @point_b
+        def same(value: int) -> int: ...
+
+    def same(value: int) -> int:
+        return value
+
+    pm = PluginManager("a")
+    pm.add_extension_points(SpecsA)
+    assert pm.caller(SpecsA.same) is pm.hook.same
+    with pytest.raises(TypeError, match="decorated for project 'a'"):
+        pm.caller(SpecsB.same)
+    with pytest.raises(TypeError, match="decorated for project 'a'"):
+        pm.caller(same)  # type: ignore[call-overload]  # undecorated input is the runtime case under test
+
+
+def test_caller_rejects_an_unregistered_same_project_spec_with_the_same_name():
+    point = ExtensionPoint("identity")
+
+    class Registered:
+        @staticmethod
+        @point
+        def same(value: int) -> int: ...
+
+    class Unregistered:
+        @staticmethod
+        @point
+        def same(value: int) -> int: ...
+
+    pm = PluginManager("identity")
+    pm.add_extension_points(Registered)
+    with pytest.raises(PluginValidationError, match="unknown extension point 'same'"):
+        pm.caller(Unregistered.same)
+
+
 def test_caller_accepts_positional_args():
     """A typed caller can be invoked positionally, matching what its ParamSpec advertises."""
     extension_point = ExtensionPoint("pos")

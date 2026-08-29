@@ -12,10 +12,13 @@ Public API:
 - :class:`ExtensionPointOpts` / :class:`ExtensionOpts` - the option records the markers stamp.
 - :class:`PluginManager` - registers plugins and dispatches calls; ``caller(spec)``
   returns a typed caller.
+- :class:`PluginResult` / :class:`EntryPointLoadReport` - structured provenance and
+  discovery outcomes for production hosts.
 - :class:`CollectingSpec` / :class:`FirstResultSpec` / :class:`PipelineSpec` - branded
   spec types, and :class:`CollectingCaller` / :class:`FirstResultCaller` /
   :class:`PipelineCaller` (and the ``Async*`` variants) - the typed callers.
-- :class:`HookRelay` / :class:`HookCaller` / :class:`HookImpl` - the dispatch internals.
+- :class:`HookRelay` / :class:`HookCaller` / :class:`HookImpl` - public low-level
+  dispatch objects for inspection and advanced integrations.
 - :class:`PluginValidationError` - raised when a plugin is invalid.
 """
 
@@ -31,6 +34,8 @@ from pluginkit.aio import (
 from pluginkit.exceptions import PluginValidationError
 from pluginkit.manager import (
     CollectingCaller,
+    EntryPointFailure,
+    EntryPointLoadReport,
     FirstResultCaller,
     HistoricCaller,
     HookCaller,
@@ -38,6 +43,7 @@ from pluginkit.manager import (
     HookRelay,
     PipelineCaller,
     PluginManager,
+    PluginResult,
 )
 from pluginkit.markers import (
     CollectingSpec,
@@ -63,6 +69,8 @@ __all__ = [
     "AsyncPluginManager",
     "CollectingCaller",
     "CollectingSpec",
+    "EntryPointFailure",
+    "EntryPointLoadReport",
     "Extension",
     "ExtensionOpts",
     "ExtensionPoint",
@@ -77,6 +85,7 @@ __all__ = [
     "PipelineCaller",
     "PipelineSpec",
     "PluginManager",
+    "PluginResult",
     "PluginValidationError",
     "__version__",
 ]

@@ -82,6 +82,6 @@ class IngredientProvider(Protocol):
     def add_ingredients(self, base: list[str]) -> list[str]: ...
 ```
 
-This pairs nicely with the runtime validation the manager performs at
-registration: the Protocol catches signature drift in the type checker, and the
-manager catches it again at run time.
+This complements the manager's narrower runtime validation. The Protocol checks
+parameter and return annotations statically; registration checks hook and argument
+names, but does not compare annotations or return types.

@@ -23,7 +23,7 @@ from collections.abc import Callable, Generator, Iterator
 from dataclasses import dataclass, field
 from importlib.metadata import entry_points
 from types import GeneratorType
-from typing import Any, NoReturn, Self, overload
+from typing import Any, NamedTuple, NoReturn, Self, cast, get_args, overload
 
 from pluginkit.exceptions import PluginValidationError
 from pluginkit.markers import (
@@ -105,6 +105,30 @@ class HookImpl:
                 return 2
             case _:
                 return 1
+
+
+class PluginResult[R](NamedTuple):
+    """One collecting-hook result paired with the plugin that produced it."""
+
+    plugin_name: str
+    value: R
+
+
+class EntryPointFailure(NamedTuple):
+    """An entry point that could not be loaded or registered."""
+
+    name: str
+    error: Exception
+
+
+@dataclass(frozen=True, slots=True)
+class EntryPointLoadReport:
+    """Structured outcome of resilient entry-point discovery."""
+
+    loaded: tuple[str, ...]
+    already_loaded: tuple[str, ...]
+    blocked: tuple[str, ...]
+    failed: tuple[EntryPointFailure, ...]
 
 
 @dataclass(slots=True)
@@ -217,6 +241,13 @@ class HookCaller:
         kwargs = self.check_arguments(self._bind(args, kwargs))
         return self._execute(kwargs, self._nonwrappers)
 
+    def collect_with_plugins(self, *args: Any, **kwargs: Any) -> list[PluginResult[Any]]:
+        """Collect non-None results together with their registered plugin names."""
+        if self.spec.firstresult or self.spec.pipeline or self.spec.historic:
+            raise TypeError(f"hook {self.name!r} is not a collecting hook")
+        kwargs = self.check_arguments(self._bind(args, kwargs))
+        return cast(list[PluginResult[Any]], self._execute(kwargs, self._nonwrappers, with_plugins=True))
+
     def call_extra(self, functions: list[Callable[..., Any]], kwargs: dict[str, Any]) -> Any:
         """Call the hook with extra one-off implementations that are not registered.
 
@@ -255,12 +286,12 @@ class HookCaller:
         self._wrappers = [impl for impl in self._impls if impl.opts.wrapper]
         self._nonwrappers = [impl for impl in self._impls if not impl.opts.wrapper]
 
-    def _execute(self, kwargs: dict[str, Any], nonwrappers: list[HookImpl]) -> Any:
+    def _execute(self, kwargs: dict[str, Any], nonwrappers: list[HookImpl], *, with_plugins: bool = False) -> Any:
         """Run the inner impls, wrapped by any wrappers, unwinding exception-safely."""
         # Fast path: with no wrappers there is nothing to unwind, so skip the
         # try/except and generator bookkeeping entirely and let errors propagate.
         if not self._wrappers:
-            return self._core(kwargs, nonwrappers)
+            return self._core_with_plugins(kwargs, nonwrappers) if with_plugins else self._core(kwargs, nonwrappers)
         started: list[Generator[Any, Any, Any]] = []
         try:
             for wrapper in self._wrappers:
@@ -269,7 +300,7 @@ class HookCaller:
                     raise TypeError(f"wrapper {wrapper.plugin_name}.{self.name} must be a generator function")
                 next(generator)  # advance to the yield
                 started.append(generator)
-            result = self._core(kwargs, nonwrappers)
+            result = self._core_with_plugins(kwargs, nonwrappers) if with_plugins else self._core(kwargs, nonwrappers)
         except BaseException as exc:  # noqa: BLE001 - re-raised after wrappers observe it
             return self._teardown(started, exc=exc)
         return self._teardown(started, result=result)
@@ -289,6 +320,16 @@ class HookCaller:
             outcome = impl.call(kwargs)
             if outcome is not None:
                 results.append(outcome)
+        return results
+
+    @staticmethod
+    def _core_with_plugins(kwargs: dict[str, Any], nonwrappers: list[HookImpl]) -> list[PluginResult[Any]]:
+        """Collect non-None results with provenance in ordinary dispatch order."""
+        results: list[PluginResult[Any]] = []
+        for impl in nonwrappers:
+            outcome = impl.call(kwargs)
+            if outcome is not None:
+                results.append(PluginResult(impl.plugin_name, outcome))
         return results
 
     def _run_pipeline(self, kwargs: dict[str, Any], nonwrappers: list[HookImpl]) -> Any:
@@ -367,6 +408,10 @@ class CollectingCaller[**P, R](HookCaller):
         """Call the collecting hook, returning each impl's result as `list[R]`."""
         raise NotImplementedError  # pragma: no cover - the runtime object is a HookCaller
 
+    def collect_with_plugins(self, *args: P.args, **kwargs: P.kwargs) -> list[PluginResult[R]]:
+        """Collect results paired with the plugin names that produced them."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is a HookCaller
+
 
 class FirstResultCaller[**P, R](HookCaller):
     """A firstresult hook's typed caller: a call returns `R | None`."""
@@ -434,6 +479,7 @@ class PluginManager:
         self._impl_attribute = f"{project_name}_extension"
         self._name2plugin: dict[str, object] = {}
         self._blocked: set[str] = set()
+        self._spec_callers: dict[int, tuple[object, HookCaller]] = {}
         self._lock = threading.RLock()
 
     def add_extension_points(self, namespace: object) -> None:
@@ -444,6 +490,7 @@ class PluginManager:
         """
         with self._lock:
             new_callers: list[HookCaller] = []
+            new_specs: list[tuple[object, HookCaller]] = []
             for member_name in dir(namespace):
                 member = getattr(namespace, member_name)
                 spec = getattr(member, self._spec_attribute, None)
@@ -462,10 +509,14 @@ class PluginManager:
                         f"extension point {member_name!r} is already registered; "
                         f"re-adding it would drop the implementations already wired to it"
                     )
-                self._validate_spec(member_name, spec, params)
-                new_callers.append(self._make_caller(member_name, spec, params, defaults, arity))
+                self._validate_spec(member_name, spec, signature)
+                caller = self._make_caller(member_name, spec, params, defaults, arity)
+                new_callers.append(caller)
+                new_specs.append((self._spec_identity(member), caller))
             for caller in new_callers:
                 self.hook._add_caller(caller)
+            for member, caller in new_specs:
+                self._spec_callers[id(member)] = (member, caller)
 
     def _make_caller(
         self, name: str, spec: ExtensionPointOpts, params: tuple[str, ...], defaults: dict[str, Any], arity: int
@@ -492,19 +543,29 @@ class PluginManager:
 
     def _caller(self, spec: object) -> HookCaller:
         """Resolve an extension point to its registered caller (shared by subclasses)."""
+        identity = self._spec_identity(spec)
         name = getattr(spec, "__name__", None)
         if not isinstance(name, str):
             raise TypeError("caller() expects an @extension_point-decorated function")
-        found = self.hook._get_caller(name)
-        if found is None:
+        marker = getattr(spec, self._spec_attribute, None)
+        if not isinstance(marker, ExtensionPointOpts):
+            raise TypeError(f"caller() expects an extension point decorated for project {self.project_name!r}")
+        registered = self._spec_callers.get(id(identity))
+        if registered is None or registered[0] is not identity:
             raise PluginValidationError(
                 self.project_name, f"unknown extension point {name!r}; call add_extension_points() first"
             )
-        return found
+        return registered[1]
 
     @staticmethod
-    def _validate_spec(name: str, spec: ExtensionPointOpts, params: tuple[str, ...]) -> None:
+    def _spec_identity(spec: object) -> object:
+        """Normalize bound methods to their stable underlying function identity."""
+        return getattr(spec, "__func__", spec)
+
+    @staticmethod
+    def _validate_spec(name: str, spec: ExtensionPointOpts, signature: inspect.Signature) -> None:
         """Reject contradictory or impossible spec option combinations."""
+        params = tuple(signature.parameters)
         modes = [
             mode
             for mode, on in (
@@ -518,6 +579,14 @@ class PluginManager:
             raise ValueError(f"hook {name!r} cannot combine {' and '.join(modes)}")
         if spec.pipeline and not params:
             raise ValueError(f"pipeline hook {name!r} must declare at least one argument to thread through")
+        if spec.pipeline:
+            threaded = signature.parameters[params[0]].annotation
+            returned = signature.return_annotation
+            if _is_concrete_annotation(threaded) and _is_concrete_annotation(returned) and threaded != returned:
+                raise ValueError(
+                    f"pipeline hook {name!r} must return its threaded first argument type; "
+                    f"got {threaded!r} -> {returned!r}"
+                )
 
     def register(self, plugin: object, name: str | None = None) -> str:
         """Register a plugin object, wiring up every hook implementation it carries."""
@@ -631,6 +700,37 @@ class PluginManager:
             count += 1
         return count
 
+    def load_entrypoints_report(self, group: str) -> EntryPointLoadReport:
+        """Discover entry points resiliently and return structured outcomes.
+
+        Unlike strict :meth:`load_entrypoints`, this method always continues after
+        individual failures. The original exception is retained for host reporting.
+        """
+        loaded: list[str] = []
+        already_loaded: list[str] = []
+        blocked: list[str] = []
+        failed: list[EntryPointFailure] = []
+        for entry_point in entry_points(group=group):
+            if entry_point.name in self._name2plugin:
+                already_loaded.append(entry_point.name)
+                continue
+            if entry_point.name in self._blocked:
+                blocked.append(entry_point.name)
+                continue
+            try:
+                plugin = entry_point.load()
+                self.register(plugin, name=entry_point.name)
+            except Exception as error:
+                failed.append(EntryPointFailure(entry_point.name, error))
+            else:
+                loaded.append(entry_point.name)
+        return EntryPointLoadReport(
+            loaded=tuple(loaded),
+            already_loaded=tuple(already_loaded),
+            blocked=tuple(blocked),
+            failed=tuple(failed),
+        )
+
     def _collect_impls(self, plugin_name: str, plugin: object) -> list[tuple[HookCaller, HookImpl]]:
         """Find and validate every hook implementation a plugin carries."""
         collected: list[tuple[HookCaller, HookImpl]] = []
@@ -647,6 +747,10 @@ class PluginManager:
                 raise PluginValidationError(plugin_name, f"implements unknown extension point {hook_name!r}")
             if opts.wrapper and caller.spec.historic:
                 raise PluginValidationError(plugin_name, f"historic hook {hook_name!r} cannot have a wrapper")
+            if opts.tryfirst and opts.trylast:
+                raise PluginValidationError(
+                    plugin_name, f"hook {hook_name!r} cannot combine tryfirst=True and trylast=True"
+                )
             try:
                 impl = HookImpl.from_function(plugin_name, member, opts)
             except ValueError as exc:
@@ -660,3 +764,14 @@ class PluginManager:
                 )
             collected.append((caller, impl))
         return collected
+
+
+def _is_concrete_annotation(annotation: object) -> bool:
+    """Return whether an annotation is resolved and contains no type variables."""
+    if annotation is inspect.Signature.empty or isinstance(annotation, str):
+        return False
+    module = type(annotation).__module__
+    name = type(annotation).__name__
+    if module == "typing" and name in {"ForwardRef", "ParamSpec", "TypeVar", "TypeVarTuple"}:
+        return False
+    return all(_is_concrete_annotation(argument) for argument in get_args(annotation))

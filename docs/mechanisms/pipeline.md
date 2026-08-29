@@ -15,6 +15,15 @@ def transform(text: str) -> str:
     """Transform the running text and return the next value."""
 ```
 
+The threaded first argument and the return annotation form one invariant: they
+must describe the same type. Every stage must be able to receive the preceding
+stage's result. Additional arguments are not threaded and remain unchanged:
+
+```python
+@extension_point(pipeline=True)
+def transform(text: str, locale: str) -> str: ...
+```
+
 Each implementation transforms and returns the value; ordering (`tryfirst` /
 `trylast`) decides the stage order:
 
@@ -50,6 +59,10 @@ pm.caller(Specs.transform)(text="  hello   world  ")  # 'Hello World!'
 - `pipeline` cannot combine with `firstresult` or `historic` (rejected at
   `add_extension_points`).
 - A pipeline spec must declare at least one argument - the one that gets threaded.
+- Concrete, resolved first-argument and return annotations must match. The manager
+  rejects an obvious mismatch such as `str -> int`. Forward references, unresolved
+  names, and generic annotations are not compared at runtime; type-check those in
+  the host.
 - Wrappers still wrap the whole pipeline and receive the final value.
 
 ## Try it

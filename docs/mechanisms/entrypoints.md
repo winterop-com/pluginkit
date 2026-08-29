@@ -41,6 +41,20 @@ loaded = pm.load_entrypoints("kitchen", ignore_errors=True)
 Already-registered and [blocked](../concepts/plugin-manager.md#blocking) names are
 skipped automatically.
 
+For a production host that must continue and report every outcome, use the
+structured API:
+
+```python
+report = pm.load_entrypoints_report("kitchen")
+print(report.loaded, report.already_loaded, report.blocked)
+for failure in report.failed:
+    print(failure.name, failure.error)
+```
+
+This method always continues after individual failures and retains each original
+exception. The existing strict `load_entrypoints()` behavior and its partial
+progress semantics are unchanged.
+
 ## Run it
 
 ```bash

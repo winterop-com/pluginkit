@@ -40,6 +40,10 @@ pm.register(late, name="late")  # 'late' still runs kitchen_opened("Main Street"
 The `result_callback` fires once per implementation - for plugins present at call
 time, and again for each late plugin as it is registered.
 
+Recorded keyword arguments are shallow snapshots: replacing an entry in the
+original dictionary does not affect replay, but nested mutable values remain
+shared. Treat historic event values as immutable if later mutation would be unsafe.
+
 ## Constraints
 
 - A historic hook cannot be `firstresult` (replay has no single "winner"); the

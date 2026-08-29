@@ -15,7 +15,10 @@ The `@extension_point` / `@extension` decorators and the option records they sta
 
 ## Manager
 
-The plugin manager and the dispatch internals.
+The plugin manager, structured discovery and attribution records, and public
+low-level dispatch objects. Prefer manager and caller methods for ordinary host
+code; mode-specific caller subclasses are typing facades rather than runtime
+classes.
 
 ::: pluginkit.manager
 

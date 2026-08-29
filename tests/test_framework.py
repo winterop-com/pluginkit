@@ -1,6 +1,7 @@
 """Unit tests for the from-scratch framework internals."""
 
 import asyncio
+from dataclasses import dataclass
 
 import pytest
 
@@ -9,6 +10,7 @@ from pluginkit import (
     Extension,
     ExtensionPoint,
     PluginManager,
+    PluginResult,
     PluginValidationError,
 )
 from pluginkit.manager import HookCaller, HookImpl
@@ -49,6 +51,61 @@ def test_collecting_hook_drops_none_results():
     caller.add_impl(HookImpl.from_function("a", lambda: "kept", ExtensionOpts()))
     caller.add_impl(HookImpl.from_function("b", lambda: None, ExtensionOpts()))
     assert caller() == ["kept"]
+
+
+def test_collect_with_plugins_preserves_names_order_filtering_and_wrappers():
+    extension_point, extension = _project("demo")
+    wrapper_saw: list[PluginResult[str]] = []
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def label(value: int) -> str: ...
+
+    class Last:
+        @extension(trylast=True)
+        def label(self, value: int) -> str:
+            return f"last:{value}"
+
+    class First:
+        @extension(tryfirst=True)
+        def label(self, value: int) -> str:
+            return f"first:{value}"
+
+    class Empty:
+        @extension
+        def label(self, value: int) -> None:
+            return None
+
+    class Wrapper:
+        @extension(wrapper=True)
+        def label(self, value: int):
+            result = yield
+            wrapper_saw.extend(result)
+            return result
+
+    pm = _manager_with_specs(Specs)
+    pm.register(Last(), name="last")
+    pm.register(Empty(), name="empty")
+    pm.register(First(), name="first")
+    pm.register(Wrapper(), name="wrapper")
+
+    result = pm.caller(Specs.label).collect_with_plugins(value=3)
+    assert result == [PluginResult("first", "first:3"), PluginResult("last", "last:3")]
+    assert wrapper_saw == result
+
+
+def test_collect_with_plugins_rejects_non_collecting_hook():
+    extension_point = ExtensionPoint("demo")
+
+    class Specs:
+        @staticmethod
+        @extension_point(firstresult=True)
+        def choose() -> str: ...
+
+    pm = _manager_with_specs(Specs)
+    with pytest.raises(TypeError, match="not a collecting hook"):
+        pm.hook.choose.collect_with_plugins()
 
 
 def test_unknown_hook_registration_raises():
@@ -384,6 +441,106 @@ def test_pipeline_threads_value_through_impls():
     pm.register(Doubler(), name="double")
     # tryfirst doubles 5 -> 10, then +10 -> 20, noop leaves it.
     assert pm.hook.transform(value=5) == 20
+
+
+def test_pipeline_supports_additional_arguments_with_a_stable_threaded_type():
+    extension_point, extension = _project("demo")
+
+    class Specs:
+        @staticmethod
+        @extension_point(pipeline=True)
+        def transform(value: str, suffix: str) -> str: ...
+
+    class Stage:
+        @extension
+        def transform(self, value: str, suffix: str) -> str:
+            return value + suffix
+
+    pm = _manager_with_specs(Specs)
+    pm.register(Stage())
+    assert pm.caller(Specs.transform)("a", suffix="b") == "ab"
+
+
+def test_pipeline_rejects_concrete_threaded_type_mismatch():
+    extension_point = ExtensionPoint("demo")
+
+    class Specs:
+        @staticmethod
+        @extension_point(pipeline=True)
+        def transform(value: str) -> int: ...
+
+    pm = PluginManager("demo")
+    with pytest.raises(ValueError, match="must return its threaded first argument type"):
+        pm.add_extension_points(Specs)
+
+
+def test_registration_rejects_tryfirst_and_trylast_together():
+    extension_point, extension = _project("demo")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def choose() -> str: ...
+
+    class Contradictory:
+        @extension(tryfirst=True, trylast=True)
+        def choose(self) -> str:
+            return "bad"
+
+    pm = _manager_with_specs(Specs)
+    with pytest.raises(PluginValidationError, match="plugin 'contradictory'.*hook 'choose'.*cannot combine"):
+        pm.register(Contradictory(), name="contradictory")
+
+
+def test_entrypoint_report_distinguishes_all_outcomes(monkeypatch: pytest.MonkeyPatch):
+    extension_point, extension = _project("demo")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def known() -> str: ...
+
+    class Good:
+        @extension
+        def known(self) -> str:
+            return "ok"
+
+    class Invalid:
+        @extension
+        def unknown(self) -> str:
+            return "bad"
+
+    @dataclass
+    class FakeEntryPoint:
+        name: str
+        value: object
+
+        def load(self) -> object:
+            if isinstance(self.value, Exception):
+                raise self.value
+            return self.value
+
+    import_error = ImportError("cannot import")
+    entries = [
+        FakeEntryPoint("already", Good()),
+        FakeEntryPoint("blocked", Good()),
+        FakeEntryPoint("good", Good()),
+        FakeEntryPoint("broken-import", import_error),
+        FakeEntryPoint("invalid", Invalid()),
+    ]
+    monkeypatch.setattr("pluginkit.manager.entry_points", lambda *, group: entries)
+
+    pm = _manager_with_specs(Specs)
+    pm.register(Good(), name="already")
+    pm.set_blocked("blocked")
+    report = pm.load_entrypoints_report("demo.plugins")
+
+    assert report.loaded == ("good",)
+    assert report.already_loaded == ("already",)
+    assert report.blocked == ("blocked",)
+    assert [failure.name for failure in report.failed] == ["broken-import", "invalid"]
+    assert report.failed[0].error is import_error
+    assert isinstance(report.failed[1].error, PluginValidationError)
 
 
 def test_pipeline_cannot_combine_with_other_modes():

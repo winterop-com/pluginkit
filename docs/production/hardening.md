@@ -20,7 +20,7 @@ Covered by `test_wrapper_cleanup_runs_when_inner_impl_raises` and
 
 ## Fail-fast validation
 
-Two checks run at registration, turning silent misbehaviour into loud errors:
+Registration and typed caller resolution turn silent misbehaviour into loud errors:
 
 - **unknown hook** - an implementation whose name matches no spec raises
   `PluginValidationError` (unless marked `optional`).
@@ -28,6 +28,10 @@ Two checks run at registration, turning silent misbehaviour into loud errors:
   not have raises `PluginValidationError`. Without this, a typo like `def
   greet(self, nam)` would silently never receive its value, because the kwarg
   filter would simply drop it.
+- **contradictory order** - an implementation cannot be both `tryfirst` and
+  `trylast`.
+- **typed spec identity** - `caller(spec)` accepts only the exact extension point
+  registered with that manager, not a foreign same-named function.
 
 ## Plugin lifecycle
 
@@ -44,6 +48,8 @@ A real host needs to remove and disable plugins, not just add them:
 `load_entrypoints` isolates each plugin load. A broken third-party plugin raises a
 `PluginValidationError` that names it, or is skipped entirely with
 `ignore_errors=True`, so one bad package cannot block all discovery.
+`load_entrypoints_report` provides resilient discovery with structured loaded,
+already-loaded, blocked, and failed outcomes while retaining original exceptions.
 
 ## Thread-safe mutation
 

@@ -11,6 +11,10 @@ Declare extension points, let plugins implement them, discover plugins via entry
 points - and, unlike untyped hook systems, get the **right return type for every
 call**, derived from the spec and checked by your type checker.
 
+That strict typing applies to caller arguments and mode-correct results. Plugin
+implementation annotations are not statically linked to independently declared
+specs; registration validates their argument names at runtime.
+
 `pm.caller(spec)` hands back a caller whose result type matches the dispatch mode -
 `list[R]` for collecting, `R | None` for firstresult, `R` for pipeline - with no
 hand-annotations and no drift. Zero runtime dependencies, a `py.typed` marker, and a
@@ -59,6 +63,7 @@ print(greetings)  # ['hey Ada!']
   lookup, `call_extra`;
 - registration-time validation and call-time argument checking (failures are loud);
 - external plugin discovery via the stdlib `importlib.metadata` (no setuptools);
+- attribution-preserving collection and structured entry-point diagnostics;
 - thread-safe registry mutation.
 
 ## Layout

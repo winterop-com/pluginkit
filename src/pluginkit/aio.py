@@ -15,9 +15,9 @@ a wrapper must transform the result.
 import inspect
 from collections.abc import Callable
 from types import AsyncGeneratorType
-from typing import Any, overload
+from typing import Any, cast, overload
 
-from pluginkit.manager import _UNSET, HookCaller, HookImpl, PluginManager
+from pluginkit.manager import _UNSET, HookCaller, HookImpl, PluginManager, PluginResult
 from pluginkit.markers import (
     CollectingSpec,
     ExtensionPointOpts,
@@ -36,6 +36,15 @@ class AsyncHookCaller(HookCaller):
         kwargs = self.check_arguments(self._bind(args, kwargs))
         return await self._execute_async(kwargs, self._nonwrappers)
 
+    async def collect_with_plugins(  # type: ignore[override]  # async caller returns an awaitable result
+        self, *args: Any, **kwargs: Any
+    ) -> list[PluginResult[Any]]:
+        """Await collecting implementations and preserve each result's plugin name."""
+        if self.spec.firstresult or self.spec.pipeline or self.spec.historic:
+            raise TypeError(f"hook {self.name!r} is not a collecting hook")
+        kwargs = self.check_arguments(self._bind(args, kwargs))
+        return cast(list[PluginResult[Any]], await self._execute_async(kwargs, self._nonwrappers, with_plugins=True))
+
     async def call_extra(self, functions: list[Callable[..., Any]], kwargs: dict[str, Any]) -> Any:
         """Await the hook with extra one-off implementations that are not registered."""
         if self.spec.historic:
@@ -50,7 +59,9 @@ class AsyncHookCaller(HookCaller):
         """Historic hooks are not supported by the async manager."""
         raise NotImplementedError("historic hooks are not supported by AsyncPluginManager")
 
-    async def _execute_async(self, kwargs: dict[str, Any], nonwrappers: list[HookImpl]) -> Any:
+    async def _execute_async(
+        self, kwargs: dict[str, Any], nonwrappers: list[HookImpl], *, with_plugins: bool = False
+    ) -> Any:
         """Start async wrappers, run the impls, then unwind wrappers exception-safely."""
         started: list[AsyncGeneratorType[Any, Any]] = []
         try:
@@ -60,7 +71,11 @@ class AsyncHookCaller(HookCaller):
                     raise TypeError(f"async wrapper {wrapper.plugin_name}.{self.name} must be an async generator")
                 await generator.__anext__()  # advance to the yield
                 started.append(generator)
-            result = await self._core_async(kwargs, nonwrappers)
+            result = (
+                await self._core_with_plugins_async(kwargs, nonwrappers)
+                if with_plugins
+                else await self._core_async(kwargs, nonwrappers)
+            )
         except BaseException as exc:  # noqa: BLE001 - re-raised after wrappers observe it
             return await self._teardown_async(started, exc=exc)
         return await self._teardown_async(started, result=result)
@@ -78,6 +93,16 @@ class AsyncHookCaller(HookCaller):
             if self.spec.firstresult:
                 break
         return (results[0] if results else None) if self.spec.firstresult else results
+
+    @staticmethod
+    async def _core_with_plugins_async(kwargs: dict[str, Any], nonwrappers: list[HookImpl]) -> list[PluginResult[Any]]:
+        """Await and collect non-None results with provenance."""
+        results: list[PluginResult[Any]] = []
+        for impl in nonwrappers:
+            outcome = await _maybe_await(impl.call(kwargs))
+            if outcome is not None:
+                results.append(PluginResult(impl.plugin_name, outcome))
+        return results
 
     async def _run_pipeline_async(self, kwargs: dict[str, Any], nonwrappers: list[HookImpl]) -> Any:
         """Thread the first argument through each impl, awaiting awaitable results."""
@@ -122,6 +147,12 @@ class AsyncCollectingCaller[**P, R](AsyncHookCaller):
 
     async def __call__(self, *args: P.args, **kwargs: P.kwargs) -> list[R]:
         """Await the collecting hook, returning each impl's result as `list[R]`."""
+        raise NotImplementedError  # pragma: no cover - the runtime object is an AsyncHookCaller
+
+    async def collect_with_plugins(  # type: ignore[override]  # async caller returns an awaitable result
+        self, *args: P.args, **kwargs: P.kwargs
+    ) -> list[PluginResult[R]]:
+        """Await results paired with the plugin names that produced them."""
         raise NotImplementedError  # pragma: no cover - the runtime object is an AsyncHookCaller
 
 

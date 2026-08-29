@@ -85,10 +85,27 @@ registration.
 `pm.caller(spec)` is the typed entry point: it returns a caller whose result type is
 derived from the spec's dispatch mode (`list[R]` for collecting, `R | None` for
 firstresult, `R` for pipeline), checked by mypy and pyright.
+The spec must be the exact extension-point object previously registered with this
+manager; foreign, undecorated, and merely same-named functions are rejected.
 
 ```python
 results = pm.caller(Specs.add_ingredients)(base=["banana"])  # typed list[list[str]]
 ```
+
+### Preserving plugin attribution
+
+A collecting host that needs provenance can retain the registered plugin name for
+every non-`None` result without inspecting marker internals:
+
+```python
+results = pm.caller(Specs.add_ingredients).collect_with_plugins(base=["banana"])
+for result in results:  # PluginResult[list[str]]
+    print(result.plugin_name, result.value)
+```
+
+Ordering, filtering, and wrappers are the same as for an ordinary collecting
+call. Because wrappers receive and may replace the complete result, a wrapper used
+with this mode must preserve or deliberately construct `PluginResult` records.
 
 ## The hook relay
 
@@ -97,3 +114,12 @@ results = pm.caller(Specs.add_ingredients)(base=["banana"])  # typed list[list[s
 `pm.hook.add_ingredients(...)` read so naturally; it returns `Any`. An unknown name
 raises `AttributeError`. `pm.caller(spec)` resolves to the same `HookCaller`, so the
 two share one manager - use `pm.caller` when you want the type checker's help.
+
+## Public low-level objects
+
+`HookCaller`, `HookImpl`, and `HookRelay` are public for inspection and advanced
+integration. Their documented attributes and methods follow normal compatibility
+rules, but hosts should prefer manager and caller operations over invoking
+`HookImpl.call()` directly. The mode-specific caller classes are static typing
+facades: the runtime object is `HookCaller` (or `AsyncHookCaller`), so do not use
+`isinstance(caller, CollectingCaller)` to determine dispatch mode.

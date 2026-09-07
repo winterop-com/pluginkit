@@ -18,6 +18,12 @@ pending). See [`HookCaller._teardown`](../api-reference.md#manager).
 Covered by `test_wrapper_cleanup_runs_when_inner_impl_raises` and
 `test_wrapper_can_suppress_inner_exception`.
 
+Two malformed-wrapper edges are handled the same way. A wrapper that returns
+before yielding raises the documented `RuntimeError` rather than leaking a bare
+`StopIteration`. A wrapper that yields twice is closed, and if its own cleanup
+raises, that error carries the contract violation as its cause and the remaining
+wrappers are still unwound explicitly instead of being left to garbage collection.
+
 ## Fail-fast validation
 
 Registration and typed caller resolution turn silent misbehaviour into loud errors:
@@ -37,7 +43,8 @@ Registration and typed caller resolution turn silent misbehaviour into loud erro
 
 A real host needs to remove and disable plugins, not just add them:
 
-- `unregister(name)` drops a plugin and all its implementations;
+- `unregister(name)` drops a plugin and all its implementations, including when a
+  plugin does so from inside its own historic replay during registration;
 - `set_blocked(name)` removes it and refuses future registration (including via
   entry-point discovery);
 - `is_registered`, `get_plugin`, `get_name`, `get_hookcallers`, and `plugin_names`

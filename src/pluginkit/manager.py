@@ -298,7 +298,10 @@ class HookCaller:
                 generator = wrapper.call(kwargs)
                 if not isinstance(generator, GeneratorType):
                     raise TypeError(f"wrapper {wrapper.plugin_name}.{self.name} must be a generator function")
-                next(generator)  # advance to the yield
+                try:
+                    next(generator)  # advance to the yield
+                except StopIteration:
+                    raise RuntimeError(f"wrapper for {self.name!r} must yield exactly once") from None
                 started.append(generator)
             result = self._core_with_plugins(kwargs, nonwrappers) if with_plugins else self._core(kwargs, nonwrappers)
         except BaseException as exc:  # noqa: BLE001 - re-raised after wrappers observe it
@@ -382,8 +385,14 @@ class HookCaller:
                 # The generator yielded a second time, violating the one-yield contract.
                 # Capture the error but keep unwinding so the remaining wrappers still
                 # tear down; the error propagates through them and is raised at the end.
-                generator.close()
+                # Closing the offender can itself raise (a failing `finally`); that error
+                # then carries the contract violation as its cause and unwinding continues.
                 exc = RuntimeError(f"wrapper for {self.name!r} must yield exactly once")
+                try:
+                    generator.close()
+                except BaseException as close_exc:  # noqa: BLE001 - keep unwinding the rest
+                    close_exc.__cause__ = exc
+                    exc = close_exc
         if exc is not None:
             raise exc
         return result
@@ -603,6 +612,13 @@ class PluginManager:
             self._name2plugin[plugin_name] = plugin
             try:
                 for caller, impl in impls:
+                    if self._name2plugin.get(plugin_name) is not plugin:
+                        # A historic replay unregistered or blocked the plugin from inside
+                        # one of its own implementations. Stop wiring the rest so no hook
+                        # outlives the registration it belonged to.
+                        for hook_caller in self.hook._all_callers():
+                            hook_caller.remove_plugin(plugin_name)
+                        return plugin_name
                     caller.add_impl(impl)
             except BaseException:
                 # add_impl can fail mid-loop (e.g. a historic replay raising). Roll the

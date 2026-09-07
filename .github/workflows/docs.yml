@@ -8,6 +8,12 @@ on:
       - 'docs/**'
       - 'mkdocs.yml'
       - '.github/workflows/docs.yml'
+      # The API reference is generated from docstrings, so source changes
+      # must redeploy too, as must changes to the doc toolchain versions.
+      - 'src/**'
+      - 'examples/tour/src/**'
+      - 'pyproject.toml'
+      - 'uv.lock'
   workflow_dispatch:  # Allow manual trigger
 
 permissions:

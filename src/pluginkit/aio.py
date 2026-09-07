@@ -69,7 +69,10 @@ class AsyncHookCaller(HookCaller):
                 generator = wrapper.call(kwargs)
                 if not isinstance(generator, AsyncGeneratorType):
                     raise TypeError(f"async wrapper {wrapper.plugin_name}.{self.name} must be an async generator")
-                await generator.__anext__()  # advance to the yield
+                try:
+                    await generator.__anext__()  # advance to the yield
+                except StopAsyncIteration:
+                    raise RuntimeError(f"async wrapper for {self.name!r} must yield exactly once") from None
                 started.append(generator)
             result = (
                 await self._core_with_plugins_async(kwargs, nonwrappers)
@@ -132,9 +135,15 @@ class AsyncHookCaller(HookCaller):
                 exc = new_exc
             else:
                 # Double yield: capture the error but keep unwinding the remaining
-                # wrappers so their teardown still runs; raised after the loop.
-                await generator.aclose()
+                # wrappers so their teardown still runs; raised after the loop. A failing
+                # aclose() carries the contract violation as its cause and does not stop
+                # the unwind either.
                 exc = RuntimeError(f"async wrapper for {self.name!r} must yield exactly once")
+                try:
+                    await generator.aclose()
+                except BaseException as close_exc:  # noqa: BLE001 - keep unwinding the rest
+                    close_exc.__cause__ = exc
+                    exc = close_exc
         if exc is not None:
             raise exc
         return result

@@ -1,7 +1,7 @@
 """Regression tests for the caller-correctness fixes."""
 
 import asyncio
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 
 import pytest
 
@@ -492,3 +492,201 @@ def test_call_extra_rejects_invalid_signature_with_typeerror():
 
     with pytest.raises(TypeError, match="variadic"):
         pm.hook.hook.call_extra([bad], {"name": "a"})
+
+
+def test_plugin_that_blocks_itself_during_replay_leaves_no_hooks():
+    """A historic replay that unregisters its own plugin must not wire the remaining hooks."""
+    extension_point = ExtensionPoint("selfblock")
+    extension = Extension("selfblock")
+
+    class Specs:
+        @staticmethod
+        @extension_point(historic=True)
+        def opened(name: str) -> None: ...
+
+        @staticmethod
+        @extension_point
+        def other() -> str: ...
+
+    class Plugin:
+        def __init__(self, manager: PluginManager) -> None:
+            self.manager = manager
+
+        @extension
+        def opened(self, name: str) -> None:
+            self.manager.set_blocked("plug")
+
+        @extension
+        def other(self) -> str:
+            return "ran"
+
+    pm = PluginManager("selfblock")
+    pm.add_extension_points(Specs)
+    pm.caller(Specs.opened).call_historic(kwargs={"name": "early"})
+    pm.register(Plugin(pm), name="plug")
+
+    assert pm.plugin_names() == []
+    assert pm.is_blocked("plug")
+    assert pm.caller(Specs.other)() == []
+    assert pm.caller(Specs.opened).implementations() == []
+
+
+def test_zero_yield_wrapper_raises_contract_error():
+    """A wrapper that returns before yielding raises the documented RuntimeError, not StopIteration."""
+    extension_point = ExtensionPoint("zy")
+    extension = Extension("zy")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def act() -> int: ...
+
+    class Inner:
+        @extension
+        def act(self) -> int:
+            return 1
+
+    class ZeroYield:
+        @extension(wrapper=True)
+        def act(self) -> Iterator[None]:
+            return
+            yield  # pragma: no cover - makes this a generator function
+
+    pm = PluginManager("zy")
+    pm.add_extension_points(Specs)
+    pm.register(Inner())
+    pm.register(ZeroYield())
+
+    with pytest.raises(RuntimeError, match="must yield exactly once"):
+        pm.caller(Specs.act)()
+
+
+def test_async_zero_yield_wrapper_raises_contract_error():
+    extension_point = ExtensionPoint("azy")
+    extension = Extension("azy")
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def act() -> int: ...
+
+    class Inner:
+        @extension
+        async def act(self) -> int:
+            return 1
+
+    class ZeroYield:
+        @extension(wrapper=True)
+        async def act(self) -> AsyncIterator[None]:
+            return
+            yield  # pragma: no cover - makes this an async generator function
+
+    pm = AsyncPluginManager("azy")
+    pm.add_extension_points(Specs)
+    pm.register(Inner())
+    pm.register(ZeroYield())
+
+    async def run() -> None:
+        with pytest.raises(RuntimeError, match="must yield exactly once"):
+            await pm.caller(Specs.act)()
+
+    asyncio.run(run())
+
+
+def test_failing_close_of_double_yield_wrapper_still_unwinds_outer_wrapper():
+    """A cleanup error while closing the offender is chained and does not skip the outer unwind."""
+    extension_point = ExtensionPoint("fc")
+    extension = Extension("fc")
+    observed: list[str] = []
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def act() -> int: ...
+
+    class Inner:
+        @extension
+        def act(self) -> int:
+            return 1
+
+    class Outer:
+        @extension(wrapper=True, tryfirst=True)
+        def act(self) -> Iterator[None]:
+            try:
+                yield
+            except BaseException as exc:
+                observed.append(type(exc).__name__)
+                raise
+            finally:
+                observed.append("outer-finally")
+
+    class BadCleanup:
+        @extension(wrapper=True)
+        def act(self) -> Iterator[None]:
+            try:
+                yield
+                yield  # violates the one-yield contract
+            finally:
+                raise ValueError("cleanup failed")
+
+    pm = PluginManager("fc")
+    pm.add_extension_points(Specs)
+    pm.register(Inner())
+    pm.register(Outer())
+    pm.register(BadCleanup())
+
+    with pytest.raises(ValueError, match="cleanup failed") as info:
+        pm.caller(Specs.act)()
+    assert isinstance(info.value.__cause__, RuntimeError)
+    # The outer wrapper was resumed with the real error, not finalized by GC with GeneratorExit.
+    assert observed == ["ValueError", "outer-finally"]
+
+
+def test_async_failing_aclose_of_double_yield_wrapper_still_unwinds_outer_wrapper():
+    extension_point = ExtensionPoint("afc")
+    extension = Extension("afc")
+    observed: list[str] = []
+
+    class Specs:
+        @staticmethod
+        @extension_point
+        def act() -> int: ...
+
+    class Inner:
+        @extension
+        async def act(self) -> int:
+            return 1
+
+    class Outer:
+        @extension(wrapper=True, tryfirst=True)
+        async def act(self) -> AsyncIterator[None]:
+            try:
+                yield
+            except BaseException as exc:
+                observed.append(type(exc).__name__)
+                raise
+            finally:
+                observed.append("outer-finally")
+
+    class BadCleanup:
+        @extension(wrapper=True)
+        async def act(self) -> AsyncIterator[None]:
+            try:
+                yield
+                yield  # violates the one-yield contract
+            finally:
+                raise ValueError("cleanup failed")
+
+    pm = AsyncPluginManager("afc")
+    pm.add_extension_points(Specs)
+    pm.register(Inner())
+    pm.register(Outer())
+    pm.register(BadCleanup())
+
+    async def run() -> None:
+        with pytest.raises(ValueError, match="cleanup failed") as info:
+            await pm.caller(Specs.act)()
+        assert isinstance(info.value.__cause__, RuntimeError)
+        assert observed == ["ValueError", "outer-finally"]
+
+    asyncio.run(run())

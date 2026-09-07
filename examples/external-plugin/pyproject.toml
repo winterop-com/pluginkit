@@ -4,7 +4,8 @@ version = "0.1.0"
 description = "An external plugin for the from-scratch kitchen host, its own uv project"
 readme = "README.md"
 requires-python = ">=3.13"
-# Depends on pluginkit for the shared @extension marker bound to the host project.
+# Depends on pluginkit only: the @extension marker is bound to the host's project
+# name ("kitchen") in the source, so the built wheel installs without the host.
 dependencies = ["pluginkit"]
 
 # Advertises itself under the host's "kitchen" entry-point group; the host
